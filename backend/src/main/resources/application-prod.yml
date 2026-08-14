@@ -1,0 +1,35 @@
+# Production profile — ALL credentials must come from environment variables.
+# No hardcoded defaults for secrets. Startup fails fast if required vars are missing.
+spring:
+  datasource:
+    url: ${DB_URL}               # e.g. jdbc:postgresql://prod-host:5432/healthvault
+    username: ${DB_USERNAME}     # Injected by platform secret manager
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  flyway:
+    enabled: true
+
+  jpa:
+    show-sql: false
+
+# Strict Actuator exposure — only health and info visible to load balancer probes
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never   # No internal detail leaked to unauthenticated callers
+
+logging:
+  level:
+    root: WARN
+    com.healthvault: INFO

@@ -1,0 +1,35 @@
+# Local development profile — services run on localhost with default dev ports.
+# Copy .env.example to .env and source it (or set vars in your IDE run config).
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/healthvault}
+    username: ${DB_USERNAME:healthvault}
+    password: ${DB_PASSWORD:changeme_local_dev}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 10000
+
+  flyway:
+    enabled: true
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"   # Expose everything locally for debugging
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.healthvault: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

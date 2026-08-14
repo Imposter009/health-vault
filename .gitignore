@@ -1,0 +1,49 @@
+# ============================================================
+# health-vault monorepo .gitignore
+# ============================================================
+
+# ---- Secrets / environment ----
+.env
+!.env.example
+
+# ---- Java / Maven ----
+backend/target/
+backend/.mvn/repository/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+# ---- Node / Angular ----
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.cache/
+frontend/*.js.map
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+.classpath
+.project
+.settings/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ---- Docker ----
+infra/docker/*.log
+
+# ---- Test / coverage ----
+backend/src/test/resources/application-test.properties
