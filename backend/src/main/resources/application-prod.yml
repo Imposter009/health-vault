@@ -19,6 +19,12 @@ spring:
   jpa:
     show-sql: false
 
+  data:
+    redis:
+      host: ${REDIS_HOST}             # required in prod — no default
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}    # empty string if no auth (dev); set in prod
+
 # Strict Actuator exposure — only health and info visible to load balancer probes
 management:
   endpoints:

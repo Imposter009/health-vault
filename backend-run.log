@@ -1,0 +1,949 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-08-15T13:37:29.598+05:30  INFO 8992 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Starting HealthVaultApplication v0.0.1-SNAPSHOT using Java 17.0.6 with PID 8992 (D:\iDTC_Project\CPX-SoCK\repos\health-vault\backend\target\healthvault-backend-0.0.1-SNAPSHOT.jar started by sumit1.g in D:\iDTC_Project\CPX-SoCK\repos\health-vault\backend)
+2026-08-15T13:37:29.601+05:30 DEBUG 8992 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Running with Spring Boot v3.3.5, Spring v6.1.14
+2026-08-15T13:37:29.601+05:30  INFO 8992 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : The following 1 profile is active: "local"
+2026-08-15T13:37:31.335+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-08-15T13:37:31.340+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-15T13:37:31.577+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 219 ms. Found 2 JPA repository interfaces.
+2026-08-15T13:37:31.594+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-08-15T13:37:31.610+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-08-15T13:37:31.639+05:30  INFO 8992 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.auth.repository.RefreshTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-15T13:37:31.641+05:30  INFO 8992 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.auth.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-15T13:37:31.644+05:30  INFO 8992 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 12 ms. Found 0 Redis repository interfaces.
+2026-08-15T13:37:33.652+05:30  INFO 8992 --- [healthvault-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
+2026-08-15T13:37:33.665+05:30  INFO 8992 --- [healthvault-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-15T13:37:33.680+05:30  INFO 8992 --- [healthvault-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.30]
+2026-08-15T13:37:33.856+05:30  INFO 8992 --- [healthvault-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-08-15T13:37:33.858+05:30  INFO 8992 --- [healthvault-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 4194 ms
+2026-08-15T13:37:35.236+05:30 DEBUG 8992 --- [healthvault-backend] [           main] c.h.auth.filter.JwtAuthenticationFilter  : Filter 'jwtAuthenticationFilter' configured for use
+2026-08-15T13:37:35.246+05:30 DEBUG 8992 --- [healthvault-backend] [           main] c.h.auth.filter.RateLimitFilter          : Filter 'rateLimitFilter' configured for use
+2026-08-15T13:37:35.639+05:30  INFO 8992 --- [healthvault-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-15T13:37:36.178+05:30  INFO 8992 --- [healthvault-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@6c13019c
+2026-08-15T13:37:36.183+05:30  INFO 8992 --- [healthvault-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-15T13:37:36.225+05:30  INFO 8992 --- [healthvault-backend] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/healthvault (PostgreSQL 14.4)
+2026-08-15T13:37:36.340+05:30  INFO 8992 --- [healthvault-backend] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 2 migrations (execution time 00:00.076s)
+2026-08-15T13:37:36.530+05:30  INFO 8992 --- [healthvault-backend] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "healthvault": 2
+2026-08-15T13:37:36.547+05:30  INFO 8992 --- [healthvault-backend] [           main] o.f.core.internal.command.DbMigrate      : Schema "healthvault" is up to date. No migration necessary.
+2026-08-15T13:37:36.724+05:30  INFO 8992 --- [healthvault-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-08-15T13:37:36.880+05:30  INFO 8992 --- [healthvault-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-08-15T13:37:36.963+05:30  INFO 8992 --- [healthvault-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-08-15T13:37:37.704+05:30  INFO 8992 --- [healthvault-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-15T13:37:37.849+05:30  WARN 8992 --- [healthvault-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-15T13:37:39.792+05:30  INFO 8992 --- [healthvault-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-15T13:37:39.792+05:30  INFO 8992 --- [healthvault-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-15T13:37:40.487+05:30  INFO 8992 --- [healthvault-backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-15T13:37:43.795+05:30  INFO 8992 --- [healthvault-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 15 endpoints beneath base path '/actuator'
+2026-08-15T13:37:45.229+05:30  INFO 8992 --- [healthvault-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8099 (http) with context path '/'
+2026-08-15T13:37:45.253+05:30  INFO 8992 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Started HealthVaultApplication in 16.223 seconds (process running for 16.816)
+2026-08-15T13:38:02.079+05:30  INFO 8992 --- [healthvault-backend] [nio-8099-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-15T13:38:02.079+05:30  INFO 8992 --- [healthvault-backend] [nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-15T13:38:02.084+05:30  INFO 8992 --- [healthvault-backend] [nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
+2026-08-15T13:39:16.258+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+2026-08-15T13:39:16.258+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:39:16.258+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [1]
+2026-08-15T13:39:16.399+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T13:39:16.384120+05:30]
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [Phase One]
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [$2a$10$NeYY2rGn0.2v6AWC9msO/.TzZ3F65vs5SbvLAkpEe2vWXbEjXttcW]
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:TIMESTAMP_UTC) <- [2026-08-15T13:39:16.384120+05:30]
+2026-08-15T13:39:16.399+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:39:16.922+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-4] org.hibernate.SQL                        : 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+2026-08-15T13:39:16.922+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:39:16.922+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-4] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [1]
+2026-08-15T13:43:37.635+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T13:43:37.636+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:43:37.781+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T13:43:37.781369+05:30]
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T13:43:37.780042500+05:30]
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [caa07f635a264202dc77e9e8bcf3b840814187fd40f219d67282d97e48554ec8]
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:43:37.781+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [7f5140ac-e7e3-44ee-8a2d-518f68f5b91c]
+2026-08-15T13:43:38.043+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-7] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T13:43:38.043+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:43:38.643+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-9] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T13:43:38.643+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:50:06.510+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T13:50:06.510+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:50:06.574+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T13:50:06.574+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T13:50:06.574523+05:30]
+2026-08-15T13:50:06.574+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T13:50:06.574523+05:30]
+2026-08-15T13:50:06.574+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T13:50:06.574+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [21bfa90ccdbfc66f115cc5d70ec8c09ec37edd34b1880cdba728b20dba74c387]
+2026-08-15T13:50:06.590+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:50:06.590+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [f4f58169-063f-403a-8164-1c3cc8793428]
+2026-08-15T13:50:06.684+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.SQL                        : 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+Hibernate: 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+2026-08-15T13:50:06.684+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [21bfa90ccdbfc66f115cc5d70ec8c09ec37edd34b1880cdba728b20dba74c387]
+2026-08-15T13:50:06.684+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:50:06.700+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T13:50:06.700080+05:30]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T13:50:06.700080400+05:30]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [797c19dcd4eb8b3fc58b1441807bc493243c953295a8f9f9a599824c42b225b6]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [5a3c0559-650c-43db-adcc-a774b6530a0d]
+2026-08-15T13:50:06.700+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.SQL                        : 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-09-14T08:20:06.574523Z]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (2:BOOLEAN) <- [true]
+2026-08-15T13:50:06.700+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [21bfa90ccdbfc66f115cc5d70ec8c09ec37edd34b1880cdba728b20dba74c387]
+2026-08-15T13:50:06.715+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (4:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:50:06.715+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [f4f58169-063f-403a-8164-1c3cc8793428]
+2026-08-15T13:50:06.715+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+Hibernate: 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+2026-08-15T13:50:06.715+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [21bfa90ccdbfc66f115cc5d70ec8c09ec37edd34b1880cdba728b20dba74c387]
+2026-08-15T13:58:04.147+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T13:58:04.147+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [phase1final@test.com]
+2026-08-15T13:58:04.209+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T13:58:04.209981+05:30]
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T13:58:04.209981500+05:30]
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [e29b1a80bae3b4c2dcea69299db1dc91b2b367551194ee1bebfd5a5200710a65]
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:58:04.209+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [bc1a9029-e5a1-4d74-96a3-47fd03fe87c4]
+2026-08-15T13:58:04.320+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.SQL                        : 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+Hibernate: 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+2026-08-15T13:58:04.320+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [e29b1a80bae3b4c2dcea69299db1dc91b2b367551194ee1bebfd5a5200710a65]
+2026-08-15T13:58:04.336+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.SQL                        : 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+2026-08-15T13:58:04.336+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-09-14T08:28:04.209982Z]
+2026-08-15T13:58:04.336+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (2:BOOLEAN) <- [true]
+2026-08-15T13:58:04.336+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [e29b1a80bae3b4c2dcea69299db1dc91b2b367551194ee1bebfd5a5200710a65]
+2026-08-15T13:58:04.336+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (4:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T13:58:04.336+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [bc1a9029-e5a1-4d74-96a3-47fd03fe87c4]
+2026-08-15T13:58:04.442+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-7] org.hibernate.SQL                        : 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+Hibernate: 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+2026-08-15T13:58:04.442+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [e29b1a80bae3b4c2dcea69299db1dc91b2b367551194ee1bebfd5a5200710a65]
+2026-08-15T13:58:04.492+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T13:58:04.492+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [1ded2e61-bdc8-4a61-a556-2c61564666ff]
+2026-08-15T14:01:42.190+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+2026-08-15T14:01:42.190+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [uitest@healthvault.dev]
+2026-08-15T14:01:42.206+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [1]
+2026-08-15T14:01:42.269+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T14:01:42.269+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T14:01:42.269185+05:30]
+2026-08-15T14:01:42.269+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:VARCHAR) <- [uitest@healthvault.dev]
+2026-08-15T14:01:42.269+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [UI Test User]
+2026-08-15T14:01:42.269+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [$2a$10$TkEea.DyjX7zRoGIWH2Zj.dj.QhkCd7J0Zwd.Gt9N8.zDTsZE9O8W]
+2026-08-15T14:01:42.284+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:TIMESTAMP_UTC) <- [2026-08-15T14:01:42.269185+05:30]
+2026-08-15T14:01:42.284+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:01:42.303+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T14:01:42.305+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [uitest@healthvault.dev]
+2026-08-15T14:01:42.365+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T14:01:42.365+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T14:01:42.365192+05:30]
+2026-08-15T14:01:42.365+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T14:01:42.365192400+05:30]
+2026-08-15T14:01:42.365+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T14:01:42.379+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [2ccc2dc3f85c45d76c645a0ea608d23a45e80f3122e8491bada2c435f36197a0]
+2026-08-15T14:01:42.379+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:01:42.380+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [d3c42d42-6dd2-43d4-9916-0e44d024ebcb]
+2026-08-15T14:01:42.397+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T14:01:42.397+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:01:42.432+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T14:01:42.433+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-6] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:01:54.944+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.SQL                        : 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+Hibernate: 
+    select
+        rt1_0.id,
+        rt1_0.created_at,
+        rt1_0.expires_at,
+        rt1_0.revoked,
+        rt1_0.token_hash,
+        rt1_0.user_id 
+    from
+        healthvault.refresh_tokens rt1_0 
+    where
+        rt1_0.token_hash=?
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [2ccc2dc3f85c45d76c645a0ea608d23a45e80f3122e8491bada2c435f36197a0]
+2026-08-15T14:01:54.944+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.SQL                        : 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    update
+        healthvault.refresh_tokens 
+    set
+        expires_at=?,
+        revoked=?,
+        token_hash=?,
+        user_id=? 
+    where
+        id=?
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-09-14T08:31:42.365192Z]
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (2:BOOLEAN) <- [true]
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [2ccc2dc3f85c45d76c645a0ea608d23a45e80f3122e8491bada2c435f36197a0]
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (4:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:01:54.944+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-8] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [d3c42d42-6dd2-43d4-9916-0e44d024ebcb]
+2026-08-15T14:02:14.458+05:30 DEBUG 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T14:02:14.458+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [uitest@healthvault.dev]
+2026-08-15T14:02:14.553+05:30 DEBUG 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T14:02:14.553238+05:30]
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T14:02:14.553238200+05:30]
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [76cf836be0ca06afe6cb8c63f194eff7aced5be58c08355755d170807668eed8]
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:02:14.568+05:30 TRACE 8992 --- [healthvault-backend] [io-8099-exec-10] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [02b22134-d3f0-44e5-be11-65c7d0ed3d64]
+2026-08-15T14:02:14.584+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T14:02:14.584+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-2] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:02:14.604+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T14:02:14.616+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:02:21.519+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.id=?
+2026-08-15T14:02:21.528+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [e3680d5e-3b85-4285-8f8e-32ebdfb1209c]
+2026-08-15T14:31:19.029+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-9] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T14:31:19.029+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [testuser@example.com]
+2026-08-15T14:32:23.148+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+2026-08-15T14:32:23.148+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [metricstest@example.com]
+2026-08-15T14:32:23.148+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [1]
+2026-08-15T14:32:23.229+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.users
+        (created_at, email, full_name, password_hash, updated_at, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T14:32:23.229001+05:30]
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:VARCHAR) <- [metricstest@example.com]
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:VARCHAR) <- [Metrics Tester]
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [$2a$10$l6jtByVsw8xeN3jsnbJGRudg7YbgCXw99p8tpxloRYoOZqZHNqF0C]
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:TIMESTAMP_UTC) <- [2026-08-15T14:32:23.229001+05:30]
+2026-08-15T14:32:23.229+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [cf3a3cd6-8982-4b0d-91ca-87962d05141f]
+2026-08-15T14:33:09.991+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.SQL                        : 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        u1_0.id 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=? 
+    fetch
+        first ? rows only
+2026-08-15T14:33:09.991+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [metricstest@example.com]
+2026-08-15T14:33:09.991+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-3] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [1]
+2026-08-15T14:33:21.679+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-15T14:33:21.679+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [metricstest@example.com]
+2026-08-15T14:33:21.739+05:30 DEBUG 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-15T14:33:21.739564+05:30]
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-14T14:33:21.739564800+05:30]
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [2ac44c302c76fd7587e4eb75d076ad9f6c236b73c4c6b7f3e30b87a0f92b67b3]
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [cf3a3cd6-8982-4b0d-91ca-87962d05141f]
+2026-08-15T14:33:21.755+05:30 TRACE 8992 --- [healthvault-backend] [nio-8099-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [861e112a-3acc-4560-8404-69b58cad278f]

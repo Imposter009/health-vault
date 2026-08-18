@@ -16,6 +16,11 @@ spring:
   jpa:
     show-sql: false
 
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}   # matches docker-compose service name
+      port: ${REDIS_PORT:6379}
+
 management:
   endpoints:
     web:

@@ -1,0 +1,270 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-08-17T17:26:00.447+05:30  INFO 38984 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Starting HealthVaultApplication v0.0.1-SNAPSHOT using Java 17.0.6 with PID 38984 (D:\iDTC_Project\CPX-SoCK\repos\health-vault\backend\target\healthvault-backend-0.0.1-SNAPSHOT.jar started by sumit1.g in D:\iDTC_Project\CPX-SoCK\repos\health-vault\backend)
+2026-08-17T17:26:00.451+05:30 DEBUG 38984 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Running with Spring Boot v3.3.5, Spring v6.1.14
+2026-08-17T17:26:00.451+05:30  INFO 38984 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : The following 1 profile is active: "local"
+2026-08-17T17:26:02.367+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-08-17T17:26:02.370+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-17T17:26:02.546+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 173 ms. Found 4 JPA repository interfaces.
+2026-08-17T17:26:02.561+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-08-17T17:26:02.578+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-08-17T17:26:02.595+05:30  INFO 38984 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.auth.repository.RefreshTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-17T17:26:02.595+05:30  INFO 38984 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.auth.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-17T17:26:02.595+05:30  INFO 38984 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.documents.repository.DocumentRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-17T17:26:02.595+05:30  INFO 38984 --- [healthvault-backend] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.healthvault.metrics.repository.HealthMetricRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-08-17T17:26:02.595+05:30  INFO 38984 --- [healthvault-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 9 ms. Found 0 Redis repository interfaces.
+2026-08-17T17:26:03.818+05:30  INFO 38984 --- [healthvault-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8098 (http)
+2026-08-17T17:26:03.829+05:30  INFO 38984 --- [healthvault-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-17T17:26:03.829+05:30  INFO 38984 --- [healthvault-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.30]
+2026-08-17T17:26:03.894+05:30  INFO 38984 --- [healthvault-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-08-17T17:26:03.909+05:30  INFO 38984 --- [healthvault-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3356 ms
+2026-08-17T17:26:04.866+05:30 DEBUG 38984 --- [healthvault-backend] [           main] c.h.auth.filter.JwtAuthenticationFilter  : Filter 'jwtAuthenticationFilter' configured for use
+2026-08-17T17:26:04.866+05:30 DEBUG 38984 --- [healthvault-backend] [           main] c.h.auth.filter.RateLimitFilter          : Filter 'rateLimitFilter' configured for use
+2026-08-17T17:26:05.459+05:30  INFO 38984 --- [healthvault-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-17T17:26:06.196+05:30  INFO 38984 --- [healthvault-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@1700d089
+2026-08-17T17:26:06.196+05:30  INFO 38984 --- [healthvault-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-17T17:26:06.260+05:30  INFO 38984 --- [healthvault-backend] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/healthvault (PostgreSQL 14.4)
+2026-08-17T17:26:06.388+05:30  INFO 38984 --- [healthvault-backend] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 4 migrations (execution time 00:00.086s)
+2026-08-17T17:26:06.589+05:30  INFO 38984 --- [healthvault-backend] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "healthvault": 4
+2026-08-17T17:26:06.595+05:30  INFO 38984 --- [healthvault-backend] [           main] o.f.core.internal.command.DbMigrate      : Schema "healthvault" is up to date. No migration necessary.
+2026-08-17T17:26:06.873+05:30  INFO 38984 --- [healthvault-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-08-17T17:26:07.106+05:30  INFO 38984 --- [healthvault-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-08-17T17:26:07.225+05:30  INFO 38984 --- [healthvault-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-08-17T17:26:08.089+05:30  INFO 38984 --- [healthvault-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-17T17:26:08.225+05:30  WARN 38984 --- [healthvault-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-17T17:26:11.240+05:30  INFO 38984 --- [healthvault-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-17T17:26:11.248+05:30  INFO 38984 --- [healthvault-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-17T17:26:12.045+05:30  INFO 38984 --- [healthvault-backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-17T17:26:14.599+05:30  INFO 38984 --- [healthvault-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 15 endpoints beneath base path '/actuator'
+2026-08-17T17:26:15.722+05:30  INFO 38984 --- [healthvault-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8098 (http) with context path '/'
+2026-08-17T17:26:15.740+05:30  INFO 38984 --- [healthvault-backend] [           main] com.healthvault.HealthVaultApplication   : Started HealthVaultApplication in 16.101 seconds (process running for 16.813)
+2026-08-17T17:26:15.986+05:30 ERROR 38984 --- [healthvault-backend] [           main] c.h.documents.config.MinioConfig         : Could not initialize MinIO bucket 'health-vault-documents': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-08-17T17:26:51.689+05:30  INFO 38984 --- [healthvault-backend] [nio-8098-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-17T17:26:51.689+05:30  INFO 38984 --- [healthvault-backend] [nio-8098-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-17T17:26:51.689+05:30  INFO 38984 --- [healthvault-backend] [nio-8098-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-08-17T17:26:52.535+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.SQL                        : 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.full_name,
+        u1_0.password_hash,
+        u1_0.updated_at 
+    from
+        healthvault.users u1_0 
+    where
+        u1_0.email=?
+2026-08-17T17:26:52.548+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:VARCHAR) <- [p3test@hv.local]
+2026-08-17T17:26:52.875+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.SQL                        : 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        healthvault.refresh_tokens
+        (created_at, expires_at, revoked, token_hash, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?)
+2026-08-17T17:26:52.878+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:TIMESTAMP_UTC) <- [2026-08-17T17:26:52.866376+05:30]
+2026-08-17T17:26:52.880+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:TIMESTAMP_UTC) <- [2026-09-16T17:26:52.835144400+05:30]
+2026-08-17T17:26:52.881+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (3:BOOLEAN) <- [false]
+2026-08-17T17:26:52.881+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (4:VARCHAR) <- [ccc359afb40e03e466d5d0d2145b317d0f81f2e8abb93f5daf424ec091335606]
+2026-08-17T17:26:52.881+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (5:UUID) <- [37484a7b-fd34-4da7-809a-d5319477ddb3]
+2026-08-17T17:26:52.882+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (6:UUID) <- [95d2e470-5a39-4213-ab26-0f7207bb0cbb]
+2026-08-17T17:26:54.763+05:30 ERROR 38984 --- [healthvault-backend] [nio-8098-exec-4] c.h.documents.service.DocumentService    : MinIO upload failed for key 37484a7b-fd34-4da7-809a-d5319477ddb3/ca14cab0-8729-4e6f-80f6-14b02e6cba7d.pdf: Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-08-17T17:26:55.909+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-5] org.hibernate.SQL                        : 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.user_id=? 
+        and d1_0.deleted_at is null 
+    order by
+        d1_0.uploaded_at desc 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.user_id=? 
+        and d1_0.deleted_at is null 
+    order by
+        d1_0.uploaded_at desc 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+2026-08-17T17:26:55.909+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [37484a7b-fd34-4da7-809a-d5319477ddb3]
+2026-08-17T17:26:55.909+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (2:INTEGER) <- [0]
+2026-08-17T17:26:55.909+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-5] org.hibernate.orm.jdbc.bind              : binding parameter (3:INTEGER) <- [20]
+2026-08-17T17:26:56.967+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-7] org.hibernate.SQL                        : 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+Hibernate: 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+2026-08-17T17:26:56.968+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [00000000-0000-0000-0000-000000000099]
+2026-08-17T17:26:56.968+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-7] org.hibernate.orm.jdbc.bind              : binding parameter (2:UUID) <- [37484a7b-fd34-4da7-809a-d5319477ddb3]
+2026-08-17T17:26:57.556+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-9] org.hibernate.SQL                        : 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+Hibernate: 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+2026-08-17T17:26:57.560+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [00000000-0000-0000-0000-000000000001]
+2026-08-17T17:26:57.560+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-9] org.hibernate.orm.jdbc.bind              : binding parameter (2:UUID) <- [37484a7b-fd34-4da7-809a-d5319477ddb3]
+2026-08-17T17:26:58.098+05:30 DEBUG 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.SQL                        : 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+Hibernate: 
+    select
+        d1_0.id,
+        d1_0.category,
+        d1_0.deleted_at,
+        d1_0.encrypted_filename,
+        d1_0.mime_type,
+        d1_0.size_bytes,
+        d1_0.status,
+        d1_0.storage_key,
+        d1_0.updated_at,
+        d1_0.uploaded_at,
+        d1_0.user_id 
+    from
+        healthvault.documents d1_0 
+    where
+        d1_0.id=? 
+        and d1_0.user_id=? 
+        and d1_0.deleted_at is null
+2026-08-17T17:26:58.100+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (1:UUID) <- [00000000-0000-0000-0000-000000000002]
+2026-08-17T17:26:58.100+05:30 TRACE 38984 --- [healthvault-backend] [nio-8098-exec-1] org.hibernate.orm.jdbc.bind              : binding parameter (2:UUID) <- [37484a7b-fd34-4da7-809a-d5319477ddb3]
+2026-08-18T09:25:46.506+05:30  WARN 38984 --- [healthvault-backend] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=15h29m55s825ms483µs400ns).

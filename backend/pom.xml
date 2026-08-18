@@ -82,6 +82,59 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!--
+          JWT encode/decode via Spring Security OAuth2 JOSE + Nimbus (managed by Spring Boot BOM).
+          Using the Spring-native JWT primitives avoids pulling in an external JWT library
+          and ensures the version is always in sync with the Spring Security release train.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+
+        <!-- MinIO Java SDK — object storage client for document upload/download -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.11</version>
+        </dependency>
+
+        <!--
+          Tika core (no parsers) — lightweight MIME-type detector from magic bytes.
+          Used to verify actual file content type rather than trusting client-supplied headers.
+        -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
+        <!--
+          Tika parsers — full parser bundle including PDF (PDFBox), Office, and Tesseract
+          delegation for image-based OCR.  Used by the Phase 4 async OCR pipeline.
+          Version pinned to match tika-core above.
+        -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
+        <!--
+          Spring Kafka — producer (KafkaTemplate) and consumer (@KafkaListener) support.
+          Version is managed by Spring Boot BOM (3.3.x → Kafka client 3.7.x).
+        -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
