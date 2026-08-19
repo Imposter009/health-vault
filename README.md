@@ -2,7 +2,7 @@
 
 Health Vault is a personal health and medical record vault — a secure, self-hosted platform that lets individuals store, manage, and share their health records (lab results, prescriptions, imaging, immunisations, etc.) with full audit trails and end-to-end encryption. The backend is a Spring Boot 3.x REST API backed by PostgreSQL, and the frontend is an Angular 16 PWA.
 
-> **Current phase: Phase 4 (Async OCR pipeline).** Phases 0–4 complete. See [PROGRESS.md](PROGRESS.md) for full detail.
+> **Current phase: Phase 5 (API Gateway + Audit Trail).** Phases 0–5 complete. See [PROGRESS.md](PROGRESS.md) for full detail.
 
 ---
 
@@ -15,6 +15,14 @@ health-vault/
 │   │   ├── HealthVaultApplication.java
 │   │   ├── common/
 │   │   │   └── EncryptionService.java        ← AES-256-GCM field-level encryption
+│   │   ├── audit/                            ← audit trail (Phase 5)
+│   │   │   ├── AuditAction.java              ← 11-action enum
+│   │   │   ├── AuditResourceType.java
+│   │   │   ├── entity/AuditLog.java          ← JSONB metadata, nullable user_id
+│   │   │   ├── repository/                   ← JpaSpecificationExecutor + specs
+│   │   │   ├── service/AuditService.java     ← REQUIRES_NEW, fail-open
+│   │   │   ├── dto/AuditLogResponse.java
+│   │   │   └── controller/AuditLogController.java
 │   │   ├── auth/                             ← JWT auth, refresh tokens, rate-limit
 │   │   ├── metrics/                          ← health metric CRUD + dashboard
 │   │   ├── documents/                        ← secure document upload/download + status
@@ -35,20 +43,34 @@ health-vault/
 │   │       ├── V2__auth.sql                  ← users + refresh_tokens
 │   │       ├── V3__health_metrics.sql        ← health_metrics (JSONB)
 │   │       ├── V4__documents.sql             ← documents (encrypted_filename BYTEA)
-│   │       └── V5__document_extractions.sql  ← processed_at, document_extractions table
+│   │       ├── V5__document_extractions.sql  ← processed_at, document_extractions table
+│   │       └── V6__audit_logs.sql            ← audit_logs (JSONB metadata, two indexes)
+│   └── pom.xml
+├── gateway/                  Spring Cloud Gateway 2023.0.3 (WebFlux, port 8081)
+│   ├── src/main/java/com/healthvault/gateway/
+│   │   ├── GatewayApplication.java
+│   │   └── config/
+│   │       ├── KeyResolverConfig.java        ← ipKeyResolver + userOrIpKeyResolver
+│   │       └── RateLimitErrorFilter.java     ← JSON body on 429
+│   ├── src/main/resources/
+│   │   ├── application.yml                   ← routes, rate-limit config, globalcors
+│   │   ├── application-local.yml
+│   │   └── application-docker.yml
 │   └── pom.xml
 ├── frontend/                 Angular 16.2.15 PWA (standalone components)
 │   └── src/app/
 │       ├── auth/             ← login, register, interceptor, guard
 │       ├── metrics/          ← metric entry form, list, dashboard (Chart.js)
-│       └── documents/        ← upload, list, viewer (PDF iframe + image zoom)
+│       ├── documents/        ← upload, list, viewer (PDF iframe + image zoom)
+│       └── audit-log/        ← activity log view (filter, day-grouping, pagination)
 ├── infra/
 │   └── docker/
-│       └── docker-compose.yml   ← Postgres 15.4 + Redis 7 + MinIO
+│       └── docker-compose.yml   ← Postgres 15.4 + Redis 7 + MinIO + Kafka
 ├── .github/
-│   └── workflows/ci.yml         ← backend-build + frontend-build jobs
+│   └── workflows/ci.yml         ← backend-build + frontend-build + gateway-build jobs
 ├── .env.example                 ← all environment variables (copy → .env)
 ├── PROGRESS.md                  ← phase-by-phase dev log and AC verification
+├── SETUP.md                     ← local and higher-env setup guide
 └── README.md
 ```
 
@@ -104,7 +126,7 @@ java -jar target/healthvault-backend-0.0.1-SNAPSHOT.jar --server.port=8098
 # Or: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Flyway applies all migrations (V1–V5) automatically on startup.
+Flyway applies all migrations (V1–V6) automatically on startup.
 
 Verify:
 
@@ -116,7 +138,16 @@ curl http://localhost:8098/actuator/health
 # → {"status":"UP"} (or degraded without Redis — app still functions)
 ```
 
-### 4. Start the frontend
+### 4. Start the gateway (Phase 5)
+
+```bash
+cd gateway
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Gateway listens on **port 8081** and forwards all `/api/**` requests to the Core API on 8080. The frontend sends all requests through the gateway.
+
+### 5. Start the frontend
 
 ```bash
 cd frontend
@@ -124,7 +155,7 @@ npm install --legacy-peer-deps
 ng serve --port 4299
 ```
 
-Open [http://localhost:4299](http://localhost:4299) — register, log in, and access Metrics, Dashboard, or Documents from the profile page.
+Open [http://localhost:4299](http://localhost:4299) — register, log in, and access Metrics, Dashboard, Documents, or **Activity & Access Log** from the profile page.
 
 ---
 
@@ -142,14 +173,16 @@ All variables are documented in [`.env.example`](.env.example). Key groups:
 | JWT | `JWT_SECRET`, `JWT_ACCESS_TOKEN_TTL_MINUTES`, `JWT_REFRESH_TOKEN_TTL_DAYS` |
 | Encryption | `DOCUMENT_ENCRYPTION_KEY` (base64-encoded 32-byte AES key — field-level encryption for filenames and OCR text) |
 | Document limits | `DOCUMENT_MAX_SIZE_BYTES` (default 26214400 = 25 MB) |
+| Gateway | `GATEWAY_PORT` (default 8081), `CORE_API_URL` (default `http://localhost:8080`), rate-limit tuning vars |
 
 ---
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs two jobs on every push and PR:
-- **backend-build** — `mvn -B verify -DskipTests` on JDK 21
+GitHub Actions (`.github/workflows/ci.yml`) runs three jobs on every push and PR:
+- **backend-build** — `mvn -B verify -DskipTests` on JDK 17
 - **frontend-build** — `npm ci && npm run build` on Node LTS
+- **gateway-build** — `mvn -B verify -DskipTests` on JDK 17 (gateway module)
 
 The workflow file is ready; activate it by adding a GitHub remote once one is configured.
 
@@ -177,6 +210,9 @@ The workflow file is ready; activate it by adding a GitHub remote once one is co
 | `GET` | `/api/documents/{id}/download-url` | Yes | Presigned MinIO URL (5 min TTL) |
 | `GET` | `/api/documents/{id}/status` | Yes | OCR processing status + metrics extracted count |
 | `DELETE` | `/api/documents/{id}` | Yes | Soft-delete DB row + hard-delete MinIO object → 204 |
+| `GET` | `/api/audit-log/me` | Yes | Current user's audit log (paged, filterable by action/date) |
+
+> **Note:** In Phase 5, all `/api/**` requests are routed through the gateway on **port 8081**, which adds rate limiting and CORS before forwarding to the Core API on 8080.
 
 ## Roadmap
 
@@ -186,8 +222,8 @@ The workflow file is ready; activate it by adding a GitHub remote once one is co
 | 1 | Authentication — JWT, refresh tokens, rate-limit | ✅ Complete |
 | 2 | Health metric tracking — CRUD + Chart.js dashboard | ✅ Complete |
 | 3 | Document vault — MinIO upload, AES-256-GCM field encryption, presigned URLs | ✅ Complete |
-| **4 (current)** | Async OCR pipeline — Kafka KRaft, Tika text extraction, health metric auto-extraction | ✅ Complete |
-| 5 | Audit trail — immutable event log |
+| 4 | Async OCR pipeline — Kafka KRaft, Tika text extraction, health metric auto-extraction | ✅ Complete |
+| **5 (current)** | API Gateway (Spring Cloud Gateway, Redis rate-limit) + Audit Trail (immutable event log, self-service view) | ✅ Complete |
 | 6 | Sharing & permissions — time-limited access grants |
 | 7 | PWA offline, push notifications |
 | 8 | Containerisation, Kubernetes manifests, production hardening |

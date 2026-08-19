@@ -623,3 +623,62 @@ Invoke-WebRequest -Uri "http://localhost:8099/api/auth/logout" -Method POST `
 - Partition count is 1 — must be increased (with replication factor) before horizontal scaling of the ingestion consumer
 - OCR context is document-level only; metric `recordedAt` defaults to document upload time (not parsed from the text)
 - Blood sugar context is extracted from the label prefix only — post-meal context from full-sentence context is not parsed
+
+---
+
+## Phase 5 — API Gateway + Audit Trail
+
+**Status:** Complete
+**Date:** 2026-08-18
+
+### What Was Built
+
+#### Gateway module (`gateway/`)
+- New standalone Spring Boot module using Spring Cloud Gateway 2023.0.3 (reactive/WebFlux)
+- Listens on `GATEWAY_PORT=8081`, forwards all `/api/**` to `CORE_API_URL=http://localhost:8080`
+- **Rate limiting** (Redis token-bucket via `RequestRateLimiter`):
+  - `POST /api/auth/login` — IP-keyed, 1 req/s sustained, burst 5 (brute-force mitigation)
+  - `POST /api/auth/register` — IP-keyed, 2 req/s, burst 5
+  - `POST /api/documents` — user-or-IP keyed (JWT sub extracted without sig verification), 5 req/s, burst 10
+  - All other `/api/**` — proxied without rate limiting (endpoint-level limiter in Core API remains as defence-in-depth)
+- **CORS** handled at gateway via `globalcors` — Angular origin `http://localhost:*` allowed for all methods
+- **429 JSON body** via `RateLimitErrorFilter` (Spring Cloud Gateway default 429 has no body; this intercepts `setComplete()` and writes structured JSON)
+- `KeyResolverConfig` — `ipKeyResolver` and `userOrIpKeyResolver` beans
+- Profiles: `application-local.yml`, `application-docker.yml`
+
+#### Audit trail (Core API — `backend/`)
+- `V6__audit_logs.sql` — `healthvault.audit_logs` table; nullable `user_id`; JSONB `metadata_json`; indexed on `(user_id, created_at DESC)` and `(action, created_at DESC)`
+- `AuditAction` enum — 11 actions covering auth, document, and metric events
+- `AuditResourceType` enum — DOCUMENT, HEALTH_METRIC, USER
+- `AuditLog` JPA entity with `@JdbcTypeCode(SqlTypes.JSON)` for JSONB metadata
+- `AuditLogRepository` extends `JpaSpecificationExecutor`
+- `AuditLogSpecifications` — composable Specification helpers (forUser, byAction, fromDate, toDate)
+- `AuditService` — `REQUIRES_NEW` propagation; fail-open (audit failure logged, not propagated); extracts IP/User-Agent from `RequestContextHolder`
+- `AuditLogController` — `GET /api/audit-log/me` (paginated, filterable; user ID always from JWT)
+
+#### Audit wiring
+- `AuthService` — LOGIN_FAILURE (before throwing), LOGIN_SUCCESS, REGISTER, LOGOUT
+- `DocumentService` — DOCUMENT_UPLOADED (with filename/mimeType/sizeBytes), DOCUMENT_VIEWED, DOCUMENT_DELETED
+- `HealthMetricService` — METRIC_CREATED, METRIC_UPDATED (with changedFields list), METRIC_DELETED
+
+#### Frontend (`frontend/`)
+- `audit-log/models.ts`, `audit-log.service.ts`, `audit-log.component.ts` — typed models, HTTP service, standalone component with filter controls, day-grouping, pagination
+- Route `/audit-log` added behind `authGuard`
+- "Activity & Access Log" nav link added to profile card
+- `environment.development.ts` — `apiBaseUrl` updated to gateway port 8081
+
+#### Infrastructure
+- `.env.example` — added `GATEWAY_PORT`, `CORE_API_URL`, rate-limit tuning vars
+- `.github/workflows/ci.yml` — added `gateway-build` job
+
+### Technical Decisions
+
+**`REQUIRES_NEW` propagation** — audit writes in own transaction; caller unaffected by audit failures; failed actions still produce audit rows even if caller rolls back.
+
+**Fail-open** — audit failure is logged but not re-thrown. A HIPAA/SOC2 environment should remove the try/catch (fail-closed). Trade-off documented in `AuditService.java`.
+
+**JWT sub at gateway without sig verification** — used only as rate-limit key, not for authorization. Core API still validates the JWT signature independently.
+
+**`RateLimitErrorFilter` decorator** — intercepts `setComplete()` on 429 responses to write a JSON body (Gateway default is no body).
+
+**Gateway test strategy** — `@MockBean RateLimiter` (no real Redis needed), `MockWebServer` as backend stub, `@DynamicPropertySource` for dynamic URL wiring.

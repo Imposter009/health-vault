@@ -1,5 +1,8 @@
 package com.healthvault.documents.service;
 
+import com.healthvault.audit.AuditAction;
+import com.healthvault.audit.AuditResourceType;
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.common.EncryptionService;
 import com.healthvault.documents.DocumentCategory;
 import com.healthvault.documents.DocumentMapper;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +50,7 @@ public class DocumentService {
     private final MinioProperties               minioProps;
     private final DocumentProperties            docProps;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final AuditService                  auditService;
 
     @Transactional
     public DocumentResponse upload(UUID userId, MultipartFile file, DocumentCategory category) {
@@ -116,6 +121,8 @@ public class DocumentService {
                 saved.getId(), e.getMessage());
         }
 
+        auditService.record(AuditAction.DOCUMENT_UPLOADED, AuditResourceType.DOCUMENT, saved.getId(), userId,
+                Map.of("filename", rawFilename, "mimeType", detectedMime, "sizeBytes", file.getSize()));
         return mapper.toResponse(saved);
     }
 
@@ -165,7 +172,11 @@ public class DocumentService {
                     .expiry(minioProps.presignedUrlExpiryMinutes(), TimeUnit.MINUTES)
                     .build()
             );
-            return new DownloadUrlResponse(url, minioProps.presignedUrlExpiryMinutes());
+            DownloadUrlResponse response = new DownloadUrlResponse(url, minioProps.presignedUrlExpiryMinutes());
+            auditService.record(AuditAction.DOCUMENT_VIEWED, AuditResourceType.DOCUMENT, id, userId, null);
+            return response;
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for document {}: {}", id, e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -194,6 +205,7 @@ public class DocumentService {
 
         doc.setDeletedAt(OffsetDateTime.now());
         repository.save(doc);
+        auditService.record(AuditAction.DOCUMENT_DELETED, AuditResourceType.DOCUMENT, id, userId, null);
     }
 
     // ---- helpers ----------------------------------------------------------------

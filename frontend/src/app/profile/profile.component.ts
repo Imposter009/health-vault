@@ -37,6 +37,7 @@ import { UserProfile } from '../auth/models';
             <a routerLink="/metrics" class="nav-btn">My Metrics</a>
             <a routerLink="/dashboard" class="nav-btn">Dashboard</a>
             <a routerLink="/documents" class="nav-btn">Documents</a>
+            <a routerLink="/audit-log" class="nav-btn nav-btn--secondary">Activity &amp; Access Log</a>
           </div>
         </div>
       </main>
@@ -65,6 +66,8 @@ import { UserProfile } from '../auth/models';
     .nav-btn { display:inline-block; padding:.5rem 1.2rem; background:#4f46e5; color:#fff;
       border-radius:6px; text-decoration:none; font-size:.9rem; }
     .nav-btn:hover { background:#4338ca; }
+    .nav-btn--secondary { background:#6b7280; }
+    .nav-btn--secondary:hover { background:#4b5563; }
   `]
 })
 export class ProfileComponent implements OnInit {

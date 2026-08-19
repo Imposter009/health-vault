@@ -1,5 +1,6 @@
 package com.healthvault.documents.service;
 
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.common.EncryptionService;
 import com.healthvault.common.EncryptionProperties;
 import com.healthvault.documents.DocumentCategory;
@@ -42,6 +43,7 @@ class DocumentServiceTest {
     @Mock DocumentRepository            repository;
     @Mock MinioClient                   minioClient;
     @Mock KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock AuditService                  auditService;
 
     // Real encryption service (no mock — easier to test round-trip)
     EncryptionService  encryptionService;
@@ -63,7 +65,7 @@ class DocumentServiceTest {
         docProps  = new DocumentProperties(26_214_400L, List.of("application/pdf", "image/jpeg", "image/png"));
         minioProps = new MinioProperties("http://localhost:9000", "minioadmin", "minioadmin",
                                          "health-vault-documents", 5);
-        service = new DocumentService(repository, encryptionService, mapper, minioClient, minioProps, docProps, kafkaTemplate);
+        service = new DocumentService(repository, encryptionService, mapper, minioClient, minioProps, docProps, kafkaTemplate, auditService);
     }
 
     // ---- upload ----------------------------------------------------------------

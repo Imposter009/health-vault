@@ -1,5 +1,8 @@
 package com.healthvault.metrics.service;
 
+import com.healthvault.audit.AuditAction;
+import com.healthvault.audit.AuditResourceType;
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.metrics.MetricMapper;
 import com.healthvault.metrics.MetricSource;
 import com.healthvault.metrics.MetricType;
@@ -20,6 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -29,6 +36,7 @@ public class HealthMetricService {
     private final HealthMetricRepository repository;
     private final MetricValidationService validationService;
     private final MetricMapper mapper;
+    private final AuditService auditService;
 
     @Transactional(readOnly = true)
     public PageResponse<MetricResponse> findAll(UUID userId, MetricType type,
@@ -64,7 +72,10 @@ public class HealthMetricService {
             .source(MetricSource.MANUAL)
             .notes(req.notes())
             .build();
-        return mapper.toResponse(repository.save(entity));
+        MetricResponse created = mapper.toResponse(repository.save(entity));
+        auditService.record(AuditAction.METRIC_CREATED, AuditResourceType.HEALTH_METRIC,
+                created.id(), userId, Map.of("metricType", req.metricType().name()));
+        return created;
     }
 
     @Transactional
@@ -72,11 +83,19 @@ public class HealthMetricService {
         HealthMetric entity = repository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Metric not found"));
 
+        List<String> changed = new ArrayList<>();
+        if (!Objects.equals(entity.getValue(), req.value())) changed.add("value");
+        if (!Objects.equals(entity.getRecordedAt(), req.recordedAt())) changed.add("recordedAt");
+        if (!Objects.equals(entity.getNotes(), req.notes())) changed.add("notes");
+
         validationService.validate(entity.getMetricType(), req.value());
         entity.setValue(req.value());
         entity.setRecordedAt(req.recordedAt());
         entity.setNotes(req.notes());
-        return mapper.toResponse(repository.save(entity));
+        MetricResponse updated = mapper.toResponse(repository.save(entity));
+        auditService.record(AuditAction.METRIC_UPDATED, AuditResourceType.HEALTH_METRIC, id, userId,
+                changed.isEmpty() ? null : Map.of("changedFields", changed));
+        return updated;
     }
 
     @Transactional
@@ -85,5 +104,6 @@ public class HealthMetricService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Metric not found"));
         entity.setDeletedAt(OffsetDateTime.now());
         repository.save(entity);
+        auditService.record(AuditAction.METRIC_DELETED, AuditResourceType.HEALTH_METRIC, id, userId, null);
     }
 }

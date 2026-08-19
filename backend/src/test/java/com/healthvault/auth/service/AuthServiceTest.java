@@ -1,5 +1,6 @@
 package com.healthvault.auth.service;
 
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.auth.config.JwtProperties;
 import com.healthvault.auth.dto.*;
 import com.healthvault.auth.entity.RefreshToken;
@@ -32,6 +33,7 @@ class AuthServiceTest {
     @Mock private TokenService tokenService;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtProperties jwtProperties;
+    @Mock private AuditService auditService;
 
     @InjectMocks private AuthService authService;
 

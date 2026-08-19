@@ -1,5 +1,8 @@
 package com.healthvault.auth.service;
 
+import com.healthvault.audit.AuditAction;
+import com.healthvault.audit.AuditResourceType;
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.auth.config.JwtProperties;
 import com.healthvault.auth.dto.AuthResponse;
 import com.healthvault.auth.dto.LoginRequest;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +34,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final JwtProperties jwtProperties;
+    private final AuditService auditService;
 
     /** Register a new user. Returns public profile (no password). */
     @Transactional
@@ -47,6 +53,7 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+        auditService.record(AuditAction.REGISTER, AuditResourceType.USER, user.getId(), user.getId(), null);
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName());
     }
 
@@ -54,13 +61,21 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                .orElseThrow(() -> {
+                    auditService.record(AuditAction.LOGIN_FAILURE, AuditResourceType.USER, null, null,
+                            Map.of("email", request.email(), "reason", "user_not_found"));
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+                });
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            auditService.record(AuditAction.LOGIN_FAILURE, AuditResourceType.USER, user.getId(), user.getId(),
+                    Map.of("reason", "bad_password"));
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        return issueTokenPair(user);
+        AuthResponse result = issueTokenPair(user);
+        auditService.record(AuditAction.LOGIN_SUCCESS, AuditResourceType.USER, user.getId(), user.getId(), null);
+        return result;
     }
 
     /**
@@ -92,11 +107,16 @@ public class AuthService {
     @Transactional
     public void logout(String rawAccessToken, String rawRefreshToken) {
         // Blacklist the access token so it cannot be reused for its remaining lifetime
+        UUID loggedOutUserId = null;
         try {
             Jwt jwt = tokenService.decode(rawAccessToken);
+            String sub = jwt.getSubject();
+            if (sub != null) {
+                loggedOutUserId = UUID.fromString(sub);
+            }
             tokenService.blacklist(jwt);
-        } catch (JwtException ignored) {
-            // Token already expired or malformed — nothing to blacklist
+        } catch (JwtException | IllegalArgumentException ignored) {
+            // Token already expired, malformed, or subject is not a valid UUID
         }
 
         // Revoke the refresh token in DB
@@ -107,6 +127,8 @@ public class AuthService {
                 refreshTokenRepository.save(rt);
             });
         }
+
+        auditService.record(AuditAction.LOGOUT, AuditResourceType.USER, loggedOutUserId, loggedOutUserId, null);
     }
 
     // ---- helpers ----

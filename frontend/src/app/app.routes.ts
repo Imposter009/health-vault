@@ -50,5 +50,10 @@ export const routes: Routes = [
     loadComponent: () => import('./documents/viewer/document-viewer.component').then((m) => m.DocumentViewerComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'audit-log',
+    loadComponent: () => import('./audit-log/audit-log.component').then((m) => m.AuditLogComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: '/login' }
 ];

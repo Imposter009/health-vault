@@ -1,0 +1,15 @@
+package com.healthvault.audit;
+
+public enum AuditAction {
+    LOGIN_SUCCESS,
+    LOGIN_FAILURE,
+    LOGOUT,
+    REGISTER,
+    DOCUMENT_UPLOADED,
+    DOCUMENT_VIEWED,
+    DOCUMENT_DOWNLOADED,
+    DOCUMENT_DELETED,
+    METRIC_CREATED,
+    METRIC_UPDATED,
+    METRIC_DELETED
+}

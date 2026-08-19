@@ -1,5 +1,6 @@
 package com.healthvault.metrics.service;
 
+import com.healthvault.audit.service.AuditService;
 import com.healthvault.metrics.MetricMapper;
 import com.healthvault.metrics.MetricSource;
 import com.healthvault.metrics.MetricType;
@@ -39,6 +40,7 @@ class HealthMetricServiceTest {
     @Mock HealthMetricRepository repository;
     @Mock MetricValidationService validationService;
     @Mock MetricMapper mapper;
+    @Mock AuditService auditService;
     @InjectMocks HealthMetricService svc;
 
     private final UUID userId   = UUID.randomUUID();

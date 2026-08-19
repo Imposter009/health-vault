@@ -52,3 +52,22 @@ jobs:
       - name: Lint
         run: npm run lint
         continue-on-error: true   # Lint warnings don't block CI in Phase 0
+
+  gateway-build:
+    name: Gateway Build (Java 17 / Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build with Maven (skip tests — no Redis in CI)
+        run: mvn -B verify -DskipTests
