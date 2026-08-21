@@ -1,0 +1,10 @@
+# Docker Compose profile — hostnames match docker-compose service names
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+logging:
+  level:
+    com.healthvault.gateway: INFO

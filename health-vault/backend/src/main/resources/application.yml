@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: healthvault-backend
+
+  # Profile is set via SPRING_PROFILES_ACTIVE env var (or -Dspring-boot.run.profiles=<profile>)
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # JPA base settings — datasource URL/credentials come from profile-specific YAMLs
+  jpa:
+    hibernate:
+      ddl-auto: none   # Schema is managed exclusively by Flyway
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        default_schema: healthvault   # all entities resolve to healthvault.<table>
+
+  # Flyway base config — enabled per-profile, locations always the same
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  # Redis — host/port overridden per profile (docker uses service hostname)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Multipart — set slightly above document.max-size-bytes so the servlet
+  # rejects oversized uploads only after our 400 handler can fire.
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 30MB
+
+  # ---- Kafka (Phase 4) -------------------------------------------------------
+  # Producer uses JsonSerializer to write POJOs as JSON strings.
+  # Consumer uses StringDeserializer; each @KafkaListener parses JSON explicitly
+  # via ObjectMapper so type resolution is clear and testable without type headers.
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: health-vault-ingestion
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      missing-topics-fatal: false   # don't fail startup if Kafka is unreachable
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+# ---- JWT ---------------------------------------------------------------
+# secret: must be at least 32 characters (raw UTF-8 bytes used as HS256 key).
+# In production, inject a cryptographically-random value via secret manager.
+# The placeholder below is safe only for local dev — change before any real use.
+jwt:
+  secret: ${JWT_SECRET:placeholder-replace-in-prod-must-be-32chars-min!}
+  access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:15}
+  refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:30}
+
+# ---- Rate limiting -----------------------------------------------------
+rate-limit:
+  auth:
+    max-requests: ${RATE_LIMIT_AUTH_MAX_REQUESTS:5}
+    window-seconds: ${RATE_LIMIT_AUTH_WINDOW_SECONDS:60}
+
+# ---- MinIO object storage ----------------------------------------------
+minio:
+  endpoint:                   ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key:                 ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key:                 ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name:                ${MINIO_BUCKET_NAME:health-vault-documents}
+  presigned-url-expiry-minutes: ${MINIO_PRESIGNED_URL_EXPIRY_MINUTES:5}
+
+# ---- Document upload ---------------------------------------------------
+document:
+  max-size-bytes: ${DOCUMENT_MAX_SIZE_BYTES:26214400}   # 25 MB
+  allowed-mime-types:
+    - application/pdf
+    - image/jpeg
+    - image/png
+
+# ---- Field-level encryption (AES-256-GCM) -----------------------------
+# DOCUMENT_ENCRYPTION_KEY: base64-encoded 32 bytes (256 bits).
+# The default below is LOCAL DEV ONLY — never use in any real environment.
+# For production, rotate keys via a KMS (AWS KMS, HashiCorp Vault) and
+# re-encrypt stored ciphertexts — a noted future improvement not built here.
+encryption:
+  document-key: ${DOCUMENT_ENCRYPTION_KEY:bG9jYWwtZGV2LWtleS0zMmJ5dGVzLW5vdC1zZWN1cmU=}
