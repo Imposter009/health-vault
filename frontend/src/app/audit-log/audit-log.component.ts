@@ -24,7 +24,6 @@ interface DayGroup {
   template: `
     <div class="audit-log-page">
       <header class="page-header">
-        <a routerLink="/profile" class="back-link">← Back to profile</a>
         <h1>Activity &amp; Access Log</h1>
         <p class="subtitle">A record of all security events and data access for your account.</p>
       </header>
@@ -94,38 +93,61 @@ interface DayGroup {
     </div>
   `,
   styles: [`
-    .audit-log-page { max-width: 720px; margin: 0 auto; padding: 24px 16px; font-family: system-ui, sans-serif; }
-    .page-header { margin-bottom: 24px; }
-    .back-link { font-size: 0.875rem; color: #6366f1; text-decoration: none; }
-    .back-link:hover { text-decoration: underline; }
-    h1 { margin: 8px 0 4px; font-size: 1.5rem; }
-    .subtitle { color: #6b7280; font-size: 0.9rem; margin: 0; }
+    .audit-log-page { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+    .page-header { margin-bottom: 1.5rem; }
+    h1 { margin: .25rem 0 .25rem; font-size: 1.375rem; font-weight:700; color:var(--color-text,#1e293b); }
+    .subtitle { color: var(--color-text-secondary,#64748b); font-size: 0.875rem; margin: 0; }
 
-    .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; align-items: flex-end; }
-    .filters label { display: flex; flex-direction: column; font-size: 0.8rem; gap: 4px; color: #374151; }
-    .filters select, .filters input { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; }
-    .btn-secondary { padding: 6px 14px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; font-size: 0.875rem; }
-    .btn-secondary:hover { background: #f3f4f6; }
+    .filters { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: flex-end; }
+    .filters label { display: flex; flex-direction: column; font-size: 0.75rem; font-weight:600; gap: 4px; color: var(--color-text-secondary,#64748b); text-transform:uppercase; letter-spacing:.04em; }
+    .filters select, .filters input {
+      padding: .4rem .65rem; border: 1.5px solid var(--color-border,#e2e8f0);
+      border-radius: var(--radius-md,8px); font-size: 0.875rem; font-family:inherit;
+      color:var(--color-text,#1e293b); background:#fff; outline:none;
+    }
+    .filters select:focus, .filters input:focus { border-color:var(--color-primary,#0f766e); }
+    .btn-secondary {
+      padding: .4rem .9rem; border: 1.5px solid var(--color-border,#e2e8f0);
+      border-radius: var(--radius-md,8px); background: #fff; cursor: pointer;
+      font-size: 0.875rem; font-family:inherit; color:var(--color-text-secondary,#64748b);
+      transition:background .1s;
+    }
+    .btn-secondary:hover { background: var(--color-surface,#f8fafc); }
 
-    .state-message { text-align: center; color: #6b7280; padding: 40px 0; }
-    .state-message.error { color: #ef4444; }
+    .state-message { text-align: center; color: var(--color-text-muted,#94a3b8); padding: 3rem 0; }
+    .state-message.error { color: var(--color-danger,#dc2626); }
 
-    .day-group { margin-bottom: 28px; }
-    .day-label { font-size: 0.8rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; }
+    .day-group { margin-bottom: 1.75rem; }
+    .day-label {
+      font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted,#94a3b8);
+      text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 .5rem;
+    }
 
     .entry-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-    .entry { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; background: #f9fafb; }
-    .entry--failure { background: #fef2f2; }
-    .entry__icon { font-size: 1.1rem; flex-shrink: 0; }
-    .entry__body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .entry__action { font-size: 0.875rem; font-weight: 500; }
-    .entry__meta { font-size: 0.78rem; color: #9ca3af; }
-    .entry__badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; }
-    .entry__badge--warn { background: #fee2e2; color: #b91c1c; }
 
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 16px 0; }
-    .pagination button { padding: 6px 16px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
-    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .entry {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem .9rem; border-radius: var(--radius-md,8px);
+      background: var(--color-card,#fff);
+      border: 1px solid var(--color-border,#e2e8f0);
+      transition: background .1s;
+    }
+    .entry:hover { background: var(--color-surface,#f8fafc); }
+    .entry--failure { background: var(--color-danger-bg,#fee2e2); border-color: #fca5a5; }
+    .entry--failure:hover { background: #fecaca; }
+    .entry--auth   { border-left: 3px solid var(--color-info,#0369a1); }
+    .entry--document { border-left: 3px solid var(--color-primary,#0f766e); }
+    .entry--metric  { border-left: 3px solid var(--color-warning,#d97706); }
+
+    .entry__icon { font-size: 1rem; flex-shrink: 0; width: 1.5rem; text-align:center; }
+    .entry__body { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width:0; }
+    .entry__action { font-size: 0.875rem; font-weight: 500; color:var(--color-text,#1e293b); }
+    .entry__meta { font-size: 0.775rem; color: var(--color-text-muted,#94a3b8); }
+    .entry__badge { font-size: 0.725rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; flex-shrink:0; }
+    .entry__badge--warn {
+      background: var(--color-danger-bg,#fee2e2);
+      color: var(--color-danger,#dc2626);
+    }
   `]
 })
 export class AuditLogComponent implements OnInit {

@@ -3,11 +3,12 @@
 spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/healthvault}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:sumogupta}
+    username: ${DB_USERNAME:healthvault}
+    password: ${DB_PASSWORD:changeme_local_dev}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
+      minimum-idle: 2
       connection-timeout: 10000
 
   flyway:
@@ -29,6 +30,13 @@ management:
       show-details: always
 
 logging:
+  file:
+    name: logs/backend.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB
   level:
     com.healthvault: DEBUG
     org.hibernate.SQL: DEBUG

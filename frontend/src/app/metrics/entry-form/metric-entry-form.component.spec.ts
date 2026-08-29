@@ -1,11 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MetricEntryFormComponent } from './metric-entry-form.component';
 import { MetricsService } from '../metrics.service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { MetricResponse } from '../models';
+import { ConnectivityService } from '../../core/connectivity.service';
 
 const mockMetric: MetricResponse = {
   id: 'x', userId: 'u', metricType: 'WEIGHT', value: { kg: 72.5 },
@@ -17,19 +20,24 @@ describe('MetricEntryFormComponent', () => {
   let fixture: ComponentFixture<MetricEntryFormComponent>;
   let comp:    MetricEntryFormComponent;
   let svcSpy:  jasmine.SpyObj<MetricsService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let router:  Router;
 
   beforeEach(async () => {
-    svcSpy    = jasmine.createSpyObj('MetricsService', ['create']);
-    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    svcSpy = jasmine.createSpyObj('MetricsService', ['create']);
+
+    const connectivityStub = { isOnline: signal(true) };
 
     await TestBed.configureTestingModule({
-      imports: [MetricEntryFormComponent, ReactiveFormsModule, CommonModule],
+      imports: [MetricEntryFormComponent, ReactiveFormsModule, CommonModule, RouterTestingModule],
       providers: [
-        { provide: MetricsService, useValue: svcSpy },
-        { provide: Router, useValue: routerSpy },
+        { provide: MetricsService,      useValue: svcSpy },
+        { provide: ActivatedRoute,      useValue: { snapshot: { params: {} } } },
+        { provide: ConnectivityService, useValue: connectivityStub },
       ],
     }).compileComponents();
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
 
     fixture = TestBed.createComponent(MetricEntryFormComponent);
     comp    = fixture.componentInstance;
@@ -88,7 +96,7 @@ describe('MetricEntryFormComponent', () => {
 
     comp.submit();
     expect(svcSpy.create).toHaveBeenCalled();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/metrics']);
+    expect(router.navigate).toHaveBeenCalledWith(['/metrics']);
   });
 
   it('submit shows errorMsg when service call fails', () => {
@@ -104,6 +112,6 @@ describe('MetricEntryFormComponent', () => {
 
   it('cancel navigates to /metrics', () => {
     comp.cancel();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/metrics']);
+    expect(router.navigate).toHaveBeenCalledWith(['/metrics']);
   });
 });

@@ -5,6 +5,7 @@ import com.healthvault.metrics.MetricType;
 import com.healthvault.metrics.dto.DashboardBucketResponse;
 import com.healthvault.metrics.dto.DashboardResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,10 @@ public class DashboardService {
 
     private final JdbcTemplate jdbc;
 
+    @Cacheable(
+        value = "dashboard",
+        key   = "#userId + ':' + #type + ':' + #from.toLocalDate() + ':' + #to.toLocalDate() + ':' + #granularity"
+    )
     public DashboardResponse getDashboard(UUID userId, MetricType type,
                                           OffsetDateTime from, OffsetDateTime to,
                                           DashboardGranularity granularity) {

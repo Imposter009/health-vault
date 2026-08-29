@@ -14,6 +14,7 @@ import com.healthvault.metrics.entity.HealthMetric;
 import com.healthvault.metrics.repository.HealthMetricRepository;
 import com.healthvault.metrics.repository.MetricSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -61,6 +62,7 @@ public class HealthMetricService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Metric not found"));
     }
 
+    @CacheEvict(value = "dashboard", allEntries = true)
     @Transactional
     public MetricResponse create(UUID userId, MetricRequest req) {
         validationService.validate(req.metricType(), req.value());
@@ -78,6 +80,7 @@ public class HealthMetricService {
         return created;
     }
 
+    @CacheEvict(value = "dashboard", allEntries = true)
     @Transactional
     public MetricResponse update(UUID userId, UUID id, MetricUpdateRequest req) {
         HealthMetric entity = repository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)
@@ -98,6 +101,7 @@ public class HealthMetricService {
         return updated;
     }
 
+    @CacheEvict(value = "dashboard", allEntries = true)
     @Transactional
     public void delete(UUID userId, UUID id) {
         HealthMetric entity = repository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)

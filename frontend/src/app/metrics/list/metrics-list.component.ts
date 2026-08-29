@@ -10,46 +10,70 @@ import { MetricResponse, MetricType, PageResponse, formatValue } from '../models
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="list-container">
-      <div class="list-header">
-        <h2>My Health Metrics</h2>
-        <a routerLink="/metrics/new" class="btn-primary">+ Log Metric</a>
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">My Health Metrics</h1>
+        </div>
+        <a routerLink="/metrics/new" class="btn btn-primary">+ Log Metric</a>
       </div>
 
       <!-- Filters -->
-      <div class="filters">
-        <select [(ngModel)]="filterType" (change)="loadPage(0)">
-          <option value="">All Types</option>
-          <option *ngFor="let t of metricTypes" [value]="t">{{ t }}</option>
-        </select>
-        <input type="date" [(ngModel)]="filterFrom" placeholder="From" (change)="loadPage(0)" />
-        <input type="date" [(ngModel)]="filterTo"   placeholder="To"   (change)="loadPage(0)" />
-        <button (click)="clearFilters()">Clear</button>
+      <div class="filters" style="margin-bottom:1rem;">
+        <label>
+          Type
+          <select [(ngModel)]="filterType" (change)="loadPage(0)">
+            <option value="">All types</option>
+            <option *ngFor="let t of metricTypes" [value]="t">{{ t | titlecase }}</option>
+          </select>
+        </label>
+        <label>
+          From
+          <input type="date" [(ngModel)]="filterFrom" (change)="loadPage(0)" />
+        </label>
+        <label>
+          To
+          <input type="date" [(ngModel)]="filterTo" (change)="loadPage(0)" />
+        </label>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
+        </div>
       </div>
 
-      <div *ngIf="loading" class="loading">Loading…</div>
-      <div *ngIf="errorMsg" class="error">{{ errorMsg }}</div>
+      <div *ngIf="loading" class="state-msg">Loading…</div>
+      <div *ngIf="errorMsg" class="state-msg error">{{ errorMsg }}</div>
 
-      <table *ngIf="!loading && page">
-        <thead>
-          <tr>
-            <th>Type</th><th>Value</th><th>Recorded At</th><th>Notes</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let m of page.content">
-            <td>{{ m.metricType }}</td>
-            <td>{{ fmt(m) }}</td>
-            <td>{{ m.recordedAt | date:'medium' }}</td>
-            <td>{{ m.notes ?? '—' }}</td>
-            <td class="actions-cell">
-              <button class="btn-sm" (click)="deleteMetric(m)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="card" style="padding:0;overflow:hidden;" *ngIf="!loading && page && page.content.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Value</th>
+              <th>Recorded At</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of page.content">
+              <td>
+                <span class="type-chip">{{ m.metricType | titlecase }}</span>
+              </td>
+              <td class="num">{{ fmt(m) }}</td>
+              <td>{{ m.recordedAt | date:'d MMM y, HH:mm' }}</td>
+              <td style="color:var(--color-text-secondary,#64748b);font-size:.875rem;">{{ m.notes ?? '—' }}</td>
+              <td>
+                <button class="btn btn-danger btn-sm" (click)="deleteMetric(m)">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <p *ngIf="!loading && page?.content?.length === 0" class="empty">No metrics logged yet.</p>
+      <div *ngIf="!loading && page?.content?.length === 0" class="state-msg empty">
+        No metrics logged yet.
+        <a routerLink="/metrics/new" class="btn btn-primary btn-sm" style="margin-top:.75rem;">Log your first metric</a>
+      </div>
 
       <!-- Pagination -->
       <div *ngIf="page && page.totalPages > 1" class="pagination">
@@ -60,23 +84,16 @@ import { MetricResponse, MetricType, PageResponse, formatValue } from '../models
     </div>
   `,
   styles: [`
-    .list-container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .btn-primary { background: #2563eb; color: white; padding: 0.4rem 1rem;
-      border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
-    .filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .filters select, .filters input { padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-    .filters button { padding: 0.3rem 0.7rem; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e5e7eb; }
-    th { background: #f9fafb; font-weight: 600; }
-    .actions-cell { display: flex; gap: 0.3rem; }
-    .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;
-      border: 1px solid #ccc; border-radius: 3px; background: white; }
-    .btn-sm:hover { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
-    .pagination { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1rem; }
-    .loading, .empty { text-align: center; color: #6b7280; padding: 2rem; }
-    .error { color: #dc2626; margin-bottom: 0.5rem; }
+    .num { font-variant-numeric:tabular-nums; text-align:right; }
+    .type-chip {
+      display:inline-block; padding:.2rem .6rem;
+      background:var(--color-primary-light,#ccfbf1);
+      color:var(--color-primary,#0f766e);
+      border-radius:var(--radius-pill,9999px);
+      font-size:.75rem; font-weight:600;
+    }
+    .data-table th:last-child,
+    .data-table td:last-child { text-align:right; }
   `]
 })
 export class MetricsListComponent implements OnInit {

@@ -12,91 +12,91 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="list-container">
-      <div class="list-header">
-        <h2>My Documents</h2>
-        <a routerLink="/documents/upload" class="btn-primary">+ Upload</a>
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">My Documents</h1>
+        </div>
+        <a routerLink="/documents/upload" class="btn btn-primary">+ Upload</a>
       </div>
 
       <!-- Filters -->
-      <div class="filters">
-        <select [(ngModel)]="filterCategory" (change)="reload()">
-          <option value="">All categories</option>
-          <option *ngFor="let c of categories" [value]="c">{{ categoryLabel(c) }}</option>
-        </select>
+      <div class="filters" style="margin-bottom:1rem;">
+        <label>
+          Category
+          <select [(ngModel)]="filterCategory" (change)="reload()">
+            <option value="">All categories</option>
+            <option *ngFor="let c of categories" [value]="c">{{ categoryLabel(c) }}</option>
+          </select>
+        </label>
       </div>
 
-      <div *ngIf="loading" class="loading">Loading…</div>
-      <div *ngIf="error"   class="error-msg">{{ error }}</div>
+      <div *ngIf="loading" class="state-msg">Loading…</div>
+      <div *ngIf="error" class="state-msg error">{{ error }}</div>
 
-      <div *ngIf="!loading && documents.length === 0 && !error" class="empty">
-        No documents yet. <a routerLink="/documents/upload">Upload your first one.</a>
+      <div *ngIf="!loading && documents.length === 0 && !error" class="state-msg empty">
+        No documents yet.
+        <a routerLink="/documents/upload" class="btn btn-primary btn-sm" style="margin-top:.75rem;">Upload your first one</a>
       </div>
 
-      <table *ngIf="documents.length > 0">
-        <thead>
-          <tr>
-            <th>Filename</th>
-            <th>Category</th>
-            <th>Type</th>
-            <th>Size</th>
-            <th>Uploaded</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let doc of documents">
-            <td>{{ doc.filename }}</td>
-            <td>{{ categoryLabel(doc.category) }}</td>
-            <td>{{ mimeShort(doc.mimeType) }}</td>
-            <td>{{ formatSize(doc.sizeBytes) }}</td>
-            <td>{{ doc.uploadedAt | date:'short' }}</td>
-            <td>
-              <span [class]="'badge badge-' + doc.status.toLowerCase()">
-                {{ statusLabel(doc.status) }}
-              </span>
-            </td>
-            <td class="actions">
-              <a [routerLink]="['/documents', doc.id, 'view']" class="btn-sm">View</a>
-              <button class="btn-sm danger" (click)="confirmDelete(doc)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="card" style="padding:0;overflow:hidden;" *ngIf="documents.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Filename</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th class="num">Size</th>
+              <th>Uploaded</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let doc of documents">
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ doc.filename }}</td>
+              <td style="color:var(--color-text-secondary,#64748b);">{{ categoryLabel(doc.category) }}</td>
+              <td>
+                <span class="mime-chip">{{ mimeShort(doc.mimeType) }}</span>
+              </td>
+              <td class="num" style="color:var(--color-text-secondary,#64748b);font-size:.875rem;">{{ formatSize(doc.sizeBytes) }}</td>
+              <td style="font-size:.875rem;color:var(--color-text-secondary,#64748b);">{{ doc.uploadedAt | date:'d MMM y' }}</td>
+              <td>
+                <span [class]="'badge badge-' + doc.status.toLowerCase()">
+                  {{ statusLabel(doc.status) }}
+                </span>
+              </td>
+              <td>
+                <div style="display:flex;gap:.4rem;justify-content:flex-end;">
+                  <a [routerLink]="['/documents', doc.id, 'view']" class="btn btn-ghost btn-sm">View</a>
+                  <button class="btn btn-danger btn-sm" (click)="confirmDelete(doc)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Pagination -->
       <div class="pagination" *ngIf="totalPages > 1">
-        <button [disabled]="page === 0" (click)="changePage(page - 1)">‹</button>
+        <button [disabled]="page === 0" (click)="changePage(page - 1)">‹ Prev</button>
         <span>{{ page + 1 }} / {{ totalPages }}</span>
-        <button [disabled]="page >= totalPages - 1" (click)="changePage(page + 1)">›</button>
+        <button [disabled]="page >= totalPages - 1" (click)="changePage(page + 1)">Next ›</button>
       </div>
     </div>
   `,
   styles: [`
-    .list-container { max-width: 960px; margin: 2rem auto; padding: 1rem; }
-    .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-    .filters { margin-bottom: 1rem; }
-    select { padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #e0e0e0; }
-    th { background: #f5f5f5; font-weight: 600; }
-    .actions { display: flex; gap: 0.5rem; }
-    .btn-primary { background: #1565c0; color: #fff; padding: 0.4rem 1rem; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
-    .btn-sm { padding: 0.3rem 0.7rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; border: none; text-decoration: none; display: inline-block; }
-    .danger { background: #c62828; color: #fff; }
-    a.btn-sm { background: #1565c0; color: #fff; }
-    .loading { color: #555; padding: 1rem; }
-    .empty { color: #777; padding: 1rem; }
-    .error-msg { color: #c62828; padding: 0.5rem; }
-    .pagination { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; justify-content: center; }
-    .pagination button { padding: 0.3rem 0.7rem; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
-    .pagination button:disabled { opacity: 0.4; cursor: default; }
-    .badge { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
-    .badge-uploaded   { background: #e3f2fd; color: #1565c0; }
-    .badge-processing { background: #fff8e1; color: #f57f17; }
-    .badge-processed  { background: #e8f5e9; color: #2e7d32; }
-    .badge-failed     { background: #ffebee; color: #c62828; }
+    .num { text-align:right; }
+    .data-table th:last-child,
+    .data-table td:last-child { text-align:right; }
+    .mime-chip {
+      display:inline-block; padding:.15rem .5rem;
+      background:var(--color-surface,#f8fafc);
+      border:1px solid var(--color-border,#e2e8f0);
+      border-radius:4px; font-size:.75rem;
+      font-weight:600; color:var(--color-text-secondary,#64748b);
+      font-family:ui-monospace,Consolas,monospace;
+    }
   `]
 })
 export class DocumentsListComponent implements OnInit {

@@ -1,10 +1,12 @@
 {
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
+
   "assetGroups": [
     {
-      "name": "app",
+      "name": "app-shell",
       "installMode": "prefetch",
+      "updateMode": "prefetch",
       "resources": {
         "files": [
           "/favicon.ico",
@@ -27,5 +29,44 @@
       }
     }
   ],
-  "dataGroups": []
+
+  "dataGroups": [
+    {
+      "name": "user-profile",
+      "urls": ["/api/users/me"],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 5,
+        "maxAge": "5m",
+        "timeout": "5s"
+      }
+    },
+    {
+      "name": "health-metrics",
+      "urls": [
+        "/api/metrics",
+        "/api/metrics/**",
+        "/api/metrics/dashboard"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 100,
+        "maxAge": "1h",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "documents-list-and-meta",
+      "urls": [
+        "/api/documents",
+        "/api/documents/**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 200,
+        "maxAge": "1h",
+        "timeout": "10s"
+      }
+    }
+  ]
 }

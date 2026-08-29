@@ -10,8 +10,10 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
+import { Subscription } from 'rxjs';
 import { MetricsService } from '../metrics/metrics.service';
 import { DashboardGranularity, DashboardResponse, MetricType } from '../metrics/models';
+import { ConnectivityService } from '../core/connectivity.service';
 
 Chart.register(...registerables);
 
@@ -20,89 +22,124 @@ Chart.register(...registerables);
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="dash-container">
-      <h2>Health Dashboard</h2>
-
-      <!-- Controls -->
-      <div class="controls">
-        <select [(ngModel)]="metricType" (change)="load()">
-          <option *ngFor="let t of metricTypes" [value]="t">{{ t }}</option>
-        </select>
-
-        <select [(ngModel)]="granularity" (change)="load()">
-          <option value="DAY">Daily</option>
-          <option value="WEEK">Weekly</option>
-          <option value="MONTH">Monthly</option>
-        </select>
-
-        <div class="presets">
-          <button (click)="setPreset(7)">7 days</button>
-          <button (click)="setPreset(30)">30 days</button>
-          <button (click)="setPreset(90)">90 days</button>
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Health Dashboard</h1>
+          <p class="page-subtitle">Trends and aggregates for your tracked metrics.</p>
         </div>
-
-        <input type="date" [(ngModel)]="fromDate" (change)="load()" />
-        <input type="date" [(ngModel)]="toDate"   (change)="load()" />
       </div>
 
-      <div *ngIf="loading" class="loading">Loading…</div>
-      <div *ngIf="errorMsg" class="error">{{ errorMsg }}</div>
-      <div *ngIf="!loading && !errorMsg && data?.buckets?.length === 0" class="empty">
+      <!-- Controls -->
+      <div class="dash-controls card" style="margin-bottom:1.5rem;">
+        <div class="dash-controls__row">
+          <div class="ctrl-group">
+            <label class="ctrl-label">Metric</label>
+            <select [(ngModel)]="metricType" (change)="load()">
+              <option *ngFor="let t of metricTypes" [value]="t">{{ t | titlecase }}</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label">Granularity</label>
+            <select [(ngModel)]="granularity" (change)="load()">
+              <option value="DAY">Daily</option>
+              <option value="WEEK">Weekly</option>
+              <option value="MONTH">Monthly</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label">Presets</label>
+            <div class="presets">
+              <button class="preset-btn" (click)="setPreset(7)">7 d</button>
+              <button class="preset-btn" (click)="setPreset(30)">30 d</button>
+              <button class="preset-btn" (click)="setPreset(90)">90 d</button>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label">From</label>
+            <input type="date" [(ngModel)]="fromDate" (change)="load()" />
+          </div>
+          <div class="ctrl-group">
+            <label class="ctrl-label">To</label>
+            <input type="date" [(ngModel)]="toDate" (change)="load()" />
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="loading" class="state-msg">Loading chart data…</div>
+      <div *ngIf="errorMsg" class="state-msg error">{{ errorMsg }}</div>
+      <div *ngIf="!loading && !errorMsg && data?.buckets?.length === 0" class="state-msg empty">
         No data for the selected period.
       </div>
 
-      <div class="chart-wrapper">
-        <canvas #chartCanvas></canvas>
+      <div class="card chart-card" *ngIf="!errorMsg">
+        <div class="chart-wrapper">
+          <canvas #chartCanvas></canvas>
+        </div>
       </div>
 
       <!-- Summary table -->
-      <table *ngIf="data && data.buckets.length > 0" class="summary-table">
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Avg</th>
-            <th *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Min</th>
-            <th *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Max</th>
-            <th *ngIf="data.metricType === 'BLOOD_PRESSURE'">Avg Sys/Dia</th>
-            <th *ngIf="data.metricType === 'WORKOUT'">Total Duration</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let b of data.buckets">
-            <td>{{ b.bucketStart }}</td>
-            <td *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.avg }}</td>
-            <td *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.min }}</td>
-            <td *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.max }}</td>
-            <td *ngIf="data.metricType === 'BLOOD_PRESSURE'">{{ b.avgSystolic }}/{{ b.avgDiastolic }}</td>
-            <td *ngIf="data.metricType === 'WORKOUT'">{{ b.totalDurationMinutes }} min</td>
-            <td>{{ b.count }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="card" style="margin-top:1.25rem;" *ngIf="data && data.buckets.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Avg</th>
+              <th class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Min</th>
+              <th class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">Max</th>
+              <th class="num" *ngIf="data.metricType === 'BLOOD_PRESSURE'">Avg Sys / Dia</th>
+              <th class="num" *ngIf="data.metricType === 'WORKOUT'">Total Duration</th>
+              <th class="num">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of data.buckets">
+              <td>{{ b.bucketStart }}</td>
+              <td class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.avg }}</td>
+              <td class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.min }}</td>
+              <td class="num" *ngIf="data.metricType !== 'BLOOD_PRESSURE' && data.metricType !== 'WORKOUT'">{{ b.max }}</td>
+              <td class="num" *ngIf="data.metricType === 'BLOOD_PRESSURE'">{{ b.avgSystolic }} / {{ b.avgDiastolic }}</td>
+              <td class="num" *ngIf="data.metricType === 'WORKOUT'">{{ b.totalDurationMinutes }} min</td>
+              <td class="num">{{ b.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   `,
   styles: [`
-    .dash-container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .controls { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
-    .controls select, .controls input { padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-    .presets { display: flex; gap: 0.3rem; }
-    .presets button { padding: 0.3rem 0.7rem; cursor: pointer; border: 1px solid #2563eb;
-      border-radius: 4px; color: #2563eb; background: white; font-size: 0.85rem; }
-    .presets button:hover { background: #eff6ff; }
-    .chart-wrapper { position: relative; height: 350px; margin-bottom: 1.5rem; }
-    .summary-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f9fafb; font-weight: 600; }
-    .loading, .empty { text-align: center; color: #6b7280; padding: 2rem; }
-    .error { color: #dc2626; margin-bottom: 0.5rem; }
+    .dash-controls { padding: 1rem 1.25rem; }
+    .dash-controls__row { display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end; }
+    .ctrl-group { display:flex; flex-direction:column; gap:.3rem; }
+    .ctrl-label { font-size:.75rem; font-weight:600; color:var(--color-text-muted,#94a3b8); text-transform:uppercase; letter-spacing:.04em; }
+    .ctrl-group select, .ctrl-group input[type=date] {
+      padding:.4rem .65rem; border:1.5px solid var(--color-border,#e2e8f0);
+      border-radius:var(--radius-md,8px); font-size:.875rem; font-family:inherit;
+      color:var(--color-text,#1e293b); background:#fff; outline:none;
+    }
+    .ctrl-group select:focus, .ctrl-group input[type=date]:focus {
+      border-color:var(--color-primary,#0f766e);
+    }
+    .presets { display:flex; gap:.3rem; }
+    .preset-btn {
+      padding:.4rem .7rem; border:1.5px solid var(--color-primary,#0f766e);
+      border-radius:var(--radius-md,8px); color:var(--color-primary,#0f766e);
+      background:#fff; font-size:.8125rem; font-weight:600; cursor:pointer;
+      transition:background .12s, color .12s; font-family:inherit;
+    }
+    .preset-btn:hover { background:var(--color-primary-light,#ccfbf1); }
+    .chart-card { padding:1.25rem; }
+    .chart-wrapper { position:relative; height:340px; }
+    .data-table th.num, .data-table td.num { text-align:right; }
   `]
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chartCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private svc   = inject(MetricsService);
-  private chart: Chart | null = null;
+  private svc          = inject(MetricsService);
+  private connectivity = inject(ConnectivityService);
+  private chart:        Chart | null = null;
+  private reconnectSub?: Subscription;
 
   readonly metricTypes: MetricType[] = [
     'BLOOD_PRESSURE', 'BLOOD_SUGAR', 'WEIGHT', 'WORKOUT', 'HEART_RATE'
@@ -118,9 +155,16 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private viewReady = false;
 
-  ngOnInit(): void { this.setPreset(30); }
+  ngOnInit(): void {
+    this.setPreset(30);
+    // Refresh dashboard data automatically when connectivity is restored
+    this.reconnectSub = this.connectivity.reconnected$.subscribe(() => this.load());
+  }
   ngAfterViewInit(): void { this.viewReady = true; if (this.data) this.renderChart(); }
-  ngOnDestroy(): void { this.chart?.destroy(); }
+  ngOnDestroy(): void {
+    this.chart?.destroy();
+    this.reconnectSub?.unsubscribe();
+  }
 
   setPreset(days: number): void {
     const to   = new Date();

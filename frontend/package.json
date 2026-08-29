@@ -21,6 +21,7 @@
     "@angular/router": "^16.2.0",
     "@angular/service-worker": "^16.2.0",
     "chart.js": "^4.5.1",
+    "idb": "^7.1.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.13.0"
@@ -37,6 +38,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
+    "fake-indexeddb": "^5.0.2",
     "jasmine-core": "~4.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

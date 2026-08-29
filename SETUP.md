@@ -7,7 +7,7 @@ Complete setup instructions for local development and higher environments (stagi
 ## Table of Contents
 
 1. [Local Development](#local-development)
-   - [Prerequisites](#1-prerequisites)
+   - [Prerequisites](#1-prerequisites) — Java, Docker Desktop, Node.js, Angular CLI, IntelliJ, Maven, pgAdmin
    - [Environment File](#2-environment-file)
    - [Start Infrastructure](#3-start-infrastructure-docker)
    - [Start Backend](#4-start-the-backend)
@@ -34,24 +34,125 @@ Complete setup instructions for local development and higher environments (stagi
 
 ### 1. Prerequisites
 
-Install the following tools before starting. The Maven wrapper (`mvnw`) is bundled — no separate Maven install needed.
+Install everything below before starting. **PostgreSQL, Redis, MinIO, and Kafka do NOT need to be installed separately — Docker runs all of them.**
 
-| Tool | Minimum Version | Notes |
-|---|---|---|
-| Java | 17 LTS | Java 21 also works |
-| Docker Desktop | Latest stable | Runs all 4 infra services |
-| Node.js | 20.x LTS | Frontend only |
-| npm | 9+ | Comes with Node.js |
-| Maven | 3.9+ | Optional — use `./mvnw` wrapper instead |
+---
 
-Verify installs:
+#### Java 17 (required — backend runtime)
 
+Download: https://adoptium.net → choose **Temurin 17 (LTS)** → Windows x64 Installer
+
+Run the installer. On the "Custom Setup" screen, enable **"Set JAVA_HOME variable"**.
+
+Verify:
 ```bash
 java -version
-docker --version
-node --version
-npm --version
+# java version "17.x.x"
 ```
+
+---
+
+#### Docker Desktop (required — runs Postgres, Redis, MinIO, Kafka)
+
+Download: https://www.docker.com/products/docker-desktop
+
+Run the installer, restart when prompted. Make sure Docker Desktop is **running in the system tray** before you do anything else — the whale icon must be visible and steady (not animating).
+
+Verify:
+```bash
+docker --version
+docker compose version
+```
+
+> You do **not** need to install PostgreSQL, pgAdmin, Redis, or any other database/broker separately. Docker Compose starts all four infrastructure services with a single command. If you want a visual database browser, pgAdmin 4 is available below (optional).
+
+---
+
+#### Node.js 20 LTS (required — Angular frontend)
+
+Download: https://nodejs.org → choose **20.x LTS** → Windows Installer
+
+npm (the package manager) is bundled with Node — no separate install.
+
+Verify:
+```bash
+node --version
+# v20.x.x
+npm --version
+# 10.x.x
+```
+
+---
+
+#### Angular CLI (required — to run `ng serve`)
+
+After Node.js is installed, run once in any terminal:
+
+```bash
+npm install -g @angular/cli@16
+```
+
+Verify:
+```bash
+ng version
+# Angular CLI: 16.x.x
+```
+
+---
+
+#### IntelliJ IDEA (recommended — backend IDE)
+
+Download: https://www.jetbrains.com/idea/download → **Community Edition** is free and sufficient.
+
+After installing, open the `backend/` folder as a project. IntelliJ auto-detects Maven and imports dependencies. To run the backend from IntelliJ:
+
+1. Open `HealthVaultApplication.java`
+2. Click the green ▶ button next to the `main` method
+3. In the run configuration, add VM option: `-Dspring-boot.run.profiles=local`
+
+Alternatively, use the terminal commands in step 4 below — IntelliJ is optional.
+
+---
+
+#### Maven (optional — only if not using IntelliJ or the bundled wrapper)
+
+The repo includes a Maven wrapper (`mvnw` / `mvnw.cmd`) — **you can run `./mvnw` instead of `mvn` everywhere in this guide** without installing Maven globally.
+
+If you prefer a global install: https://maven.apache.org/download.cgi → Binary zip → extract → add `bin/` to PATH.
+
+Verify:
+```bash
+mvn -version
+# Apache Maven 3.9.x
+```
+
+---
+
+#### pgAdmin 4 (optional — visual database browser)
+
+Only needed if you want to browse or query the PostgreSQL database through a GUI.
+
+Download: https://www.pgadmin.org/download/pgadmin-4-windows
+
+After Docker is running, connect pgAdmin to:
+
+| Field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `healthvault` |
+| Username | `healthvault` |
+| Password | `changeme_local_dev` |
+
+---
+
+#### Quick verify — all tools at once
+
+```bash
+java -version && docker --version && docker compose version && node --version && ng version --skip-confirmation
+```
+
+All five should print version numbers without errors before you continue.
 
 ---
 
@@ -104,13 +205,24 @@ For **local development the defaults work as-is** — no changes are required. T
 
 ### 3. Start Infrastructure (Docker)
 
-All four infrastructure services run in Docker. Start them with:
+Health Vault depends on four external services — PostgreSQL, Redis, MinIO, and Kafka. Rather than installing these directly on your machine, they run as isolated Docker containers defined in `infra/docker/docker-compose.yml`. Docker Desktop manages their lifecycle; you get a clean, reproducible environment in one command.
+
+**Why each service is needed:**
+
+| Service | What it is | What Health Vault uses it for |
+|---|---|---|
+| **PostgreSQL** | Relational database | Stores users, health metrics, document metadata, audit logs, and refresh tokens. All tables are created automatically by Flyway on first backend startup. |
+| **Redis** | In-memory key-value store | Two jobs: (1) JWT blacklist — when you log out, your access token is added here so it can't be reused before it expires; (2) rate-limit counters — the gateway uses Redis token buckets to enforce per-IP/per-user request limits. |
+| **MinIO** | S3-compatible object storage | Stores the actual document files (PDFs, images) uploaded by users. The database only holds encrypted metadata; the raw bytes live in MinIO. Download links are presigned MinIO URLs that expire in 5 minutes. |
+| **Kafka** | Event streaming / message bus | Decouples document upload from OCR processing. When you upload a file, the backend immediately returns a 201 and publishes a `document.uploaded` event to Kafka. A separate consumer picks it up, runs OCR via Apache Tika, and publishes a `document.processed` event. This keeps uploads fast regardless of how long OCR takes. |
+
+Start all four services:
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d
 ```
 
-Wait for all containers to report healthy:
+The `-d` flag runs containers in the background (detached). Wait for all containers to report healthy:
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml ps
@@ -126,30 +238,29 @@ healthvault-minio       Up (healthy)
 healthvault-kafka       Up (healthy)
 ```
 
-Kafka takes the longest (~30 seconds). If it shows `starting`, wait and re-run `ps`.
+> Kafka takes the longest (~30 seconds) because it initialises its KRaft metadata log on first start. If it shows `starting`, wait 10 seconds and re-run `ps`.
 
-| Service | Port(s) | Purpose |
-|---|---|---|
-| `healthvault-postgres` | 5432 | Primary database (PostgreSQL 16) |
-| `healthvault-redis` | 6379 | JWT blacklist + rate-limit windows |
-| `healthvault-minio` | 9000 (API) / 9001 (console) | Document object storage |
-| `healthvault-kafka` | 9092 | Async OCR event bus (KRaft, no Zookeeper) |
-
-**MinIO web console:** open `http://localhost:9001` in your browser.
-Login with `minioadmin` / `minioadmin` (or whatever you set in `.env`).
+**MinIO web console:** open `http://localhost:9001` in your browser and log in with `minioadmin` / `minioadmin`. You can browse uploaded documents here, though it is not required for normal use.
 
 **Useful Docker commands:**
 
 ```bash
-# View logs for a specific service
+# Stream logs from a specific service (useful for debugging)
 docker logs healthvault-kafka -f
+docker logs healthvault-postgres -f
 
-# Stop all services (keeps data volumes)
+# Stop all services (data volumes are kept — safe for day-to-day use)
 docker compose -f infra/docker/docker-compose.yml stop
 
-# Stop and destroy all data (clean slate)
+# Restart after stopping
+docker compose -f infra/docker/docker-compose.yml start
+
+# Full reset — stops containers AND deletes all data volumes (clean slate)
+# Use this if you want to start fresh or if Flyway migrations are in a bad state
 docker compose -f infra/docker/docker-compose.yml down -v
 ```
+
+> After `down -v` (data wipe), Flyway will re-run all migrations (V1–V7) and re-seed the demo users on next backend startup. Nothing needs to be done manually.
 
 ---
 
@@ -171,7 +282,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 | What | How |
 |---|---|
-| DB schema + all tables | Flyway runs migrations V1 → V6 automatically |
+| DB schema + all tables | Flyway runs migrations V1 → V7 automatically |
+| Demo users seeded | V7 migration inserts three pre-built accounts (see [Demo Credentials](#demo-credentials) below) |
 | MinIO bucket `health-vault-documents` | `MinioConfig` creates it on `ApplicationReadyEvent` if missing |
 | Kafka topics `document.uploaded` + `document.processed` | Spring `NewTopic` beans in `KafkaConfig` create them on startup |
 
@@ -262,6 +374,20 @@ brew install tesseract
 
 ---
 
+### Demo Credentials
+
+Three users are pre-seeded by migration V7 and are ready to use the moment the backend starts. No registration step needed.
+
+| Name | Email | Password | Notes |
+|---|---|---|---|
+| Admin User | `admin@healthvault.local` | `Admin@1234` | Full access — good for exploring all features |
+| Demo User | `demo@healthvault.local` | `Demo@1234` | General-purpose demo account |
+| Patient User | `patient@healthvault.local` | `Patient@1234` | Simulates a typical end user |
+
+> These accounts exist for local development and demos only. **Remove or disable them before any production deployment.**
+
+---
+
 ### 8. Verify Everything Is Running
 
 Run through this checklist after first-time setup:
@@ -269,28 +395,26 @@ Run through this checklist after first-time setup:
 ```bash
 # 1. Core API health check
 curl http://localhost:8080/api/health
+# Expected: {"status":"UP","service":"health-vault-backend"}
 
 # 2. Gateway health check
 curl http://localhost:8081/actuator/health
+# Expected: {"status":"UP"}
 
-# 3. Register a user (through gateway)
-curl -X POST http://localhost:8081/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"Test1234!","fullName":"Test User"}'
-
-# 4. Login (through gateway — rate limited to 5 burst)
+# 3. Login with a pre-seeded demo user (through gateway)
 curl -X POST http://localhost:8081/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"Test1234!"}'
+  -d '{"email":"demo@healthvault.local","password":"Demo@1234"}'
 # Copy the accessToken from the response
 
-# 5. View your audit log (replace <token> with actual token)
+# 4. View the audit log (replace <token> with the token from step 3)
 curl http://localhost:8081/api/audit-log/me \
   -H "Authorization: Bearer <token>"
-# Expected: {"content":[...],"totalElements":2,...}
+# Expected: {"content":[{"action":"LOGIN_SUCCESS",...}],"totalElements":1,...}
 
-# 6. Open the Angular UI at http://localhost:4299 — register, log in,
-#    upload a PDF, then visit "Activity & Access Log" from the profile page
+# 5. Open the Angular UI at http://localhost:4299
+#    Log in with demo@healthvault.local / Demo@1234
+#    Try uploading a PDF, then visit "Activity & Access Log" from the profile page
 ```
 
 ---
@@ -337,7 +461,7 @@ DB_USERNAME=healthvault_app
 DB_PASSWORD=<strong-password>
 ```
 
-> **Tables are created automatically** by Flyway (migrations V1–V6) on backend startup. Do not create tables manually.
+> **Tables are created automatically** by Flyway (migrations V1–V7) on backend startup. Do not create tables manually.
 
 **Connection pool (prod profile defaults):**
 
@@ -582,7 +706,8 @@ In both local and production environments, the following are handled automatical
 
 | Thing | Mechanism |
 |---|---|
-| Database tables V1–V6 | Flyway migrations run on every startup; safe to re-run (checksummed) |
+| Database tables (V1–V7) | Flyway migrations run on every startup; safe to re-run (checksummed) |
+| Demo users seeded | V7 migration inserts `admin@`, `demo@`, and `patient@healthvault.local` — runs only once |
 | MinIO bucket creation | `MinioConfig.initBucket()` runs on `ApplicationReadyEvent`; creates the bucket if it does not exist |
 | Kafka topic creation (`document.uploaded`, `document.processed`) | Spring `NewTopic` beans in `KafkaConfig`; Kafka Admin API creates topics on startup |
 | Kafka consumer group registration | Auto-registered on first message consumed |

@@ -6,6 +6,13 @@ spring:
       port: ${REDIS_PORT:6379}
 
 logging:
+  file:
+    name: logs/gateway.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 50MB
   level:
     org.springframework.cloud.gateway: DEBUG
     com.healthvault.gateway: DEBUG
