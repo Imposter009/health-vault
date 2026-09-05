@@ -17,6 +17,9 @@ import com.healthvault.documents.repository.DocumentRepository;
 import com.healthvault.documents.repository.DocumentSpecifications;
 import com.healthvault.ingestion.event.DocumentUploadedEvent;
 import com.healthvault.metrics.dto.PageResponse;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.minio.*;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
@@ -51,9 +54,12 @@ public class DocumentService {
     private final DocumentProperties            docProps;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final AuditService                  auditService;
+    private final MeterRegistry                 meterRegistry;
 
     @Transactional
     public DocumentResponse upload(UUID userId, MultipartFile file, DocumentCategory category) {
+        Timer.Sample uploadSample = Timer.start(meterRegistry);
+
         // --- 1. Size validation ---
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File must not be empty");
@@ -123,6 +129,18 @@ public class DocumentService {
 
         auditService.record(AuditAction.DOCUMENT_UPLOADED, AuditResourceType.DOCUMENT, saved.getId(), userId,
                 Map.of("filename", rawFilename, "mimeType", detectedMime, "sizeBytes", file.getSize()));
+
+        // Custom metrics: count uploads by category, record total upload+write duration
+        Counter.builder("documents.uploaded.count")
+                .tag("category", category.name())
+                .description("Number of documents uploaded, tagged by category")
+                .register(meterRegistry)
+                .increment();
+        uploadSample.stop(Timer.builder("documents.upload.duration")
+                .tag("category", category.name())
+                .description("End-to-end upload duration including MinIO write")
+                .register(meterRegistry));
+
         return mapper.toResponse(saved);
     }
 

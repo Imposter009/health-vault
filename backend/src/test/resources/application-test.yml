@@ -1,0 +1,85 @@
+# Integration-test profile.
+# Datasource / Redis / Kafka / MinIO URLs are injected at runtime by
+# @DynamicPropertySource in BaseIntegrationTest — the values below are
+# placeholder stubs that Spring needs at parse time but are always overridden.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/healthvault_test
+    username: test
+    password: test
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: healthvault
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      missing-topics-fatal: false
+
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 30MB
+
+server:
+  port: 0   # random port — tests use @LocalServerPort
+
+# Disable distributed tracing in tests — nothing is listening on Zipkin
+management:
+  tracing:
+    sampling:
+      probability: 0.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:19999/api/v2/spans  # non-existent port, never contacted
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# Fixed secrets — safe for test environment only
+jwt:
+  secret: test-secret-key-for-integration-tests-must-be-32chars!
+  access-token-ttl-minutes: 15
+  refresh-token-ttl-days: 30
+
+# Same base64 key as local dev — fine for tests
+encryption:
+  document-key: bG9jYWwtZGV2LWtleS0zMmJ5dGVzLW5vdC1zZWN1cmU=
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: health-vault-documents
+  presigned-url-expiry-minutes: 1
+
+document:
+  max-size-bytes: 5242880   # 5 MB — smaller limit speeds up tests
+  allowed-mime-types:
+    - application/pdf
+    - image/jpeg
+    - image/png
+
+rate-limit:
+  auth:
+    max-requests: 100    # high threshold so tests don't accidentally hit it
+    window-seconds: 60

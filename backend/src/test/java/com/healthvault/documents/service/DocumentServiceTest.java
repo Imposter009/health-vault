@@ -12,6 +12,8 @@ import com.healthvault.documents.dto.DocumentResponse;
 import com.healthvault.documents.dto.DownloadUrlResponse;
 import com.healthvault.documents.entity.Document;
 import com.healthvault.documents.repository.DocumentRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
@@ -50,6 +52,7 @@ class DocumentServiceTest {
     DocumentMapper     mapper;
     DocumentProperties docProps;
     MinioProperties    minioProps;
+    MeterRegistry      meterRegistry;
 
     DocumentService service;
 
@@ -61,11 +64,13 @@ class DocumentServiceTest {
         byte[] key = new byte[32];
         for (int i = 0; i < 32; i++) key[i] = (byte) i;
         encryptionService = new EncryptionService(new EncryptionProperties(Base64.getEncoder().encodeToString(key)));
-        mapper    = new DocumentMapper(encryptionService);
-        docProps  = new DocumentProperties(26_214_400L, List.of("application/pdf", "image/jpeg", "image/png"));
-        minioProps = new MinioProperties("http://localhost:9000", "minioadmin", "minioadmin",
-                                         "health-vault-documents", 5);
-        service = new DocumentService(repository, encryptionService, mapper, minioClient, minioProps, docProps, kafkaTemplate, auditService);
+        mapper        = new DocumentMapper(encryptionService);
+        docProps      = new DocumentProperties(26_214_400L, List.of("application/pdf", "image/jpeg", "image/png"));
+        minioProps    = new MinioProperties("http://localhost:9000", "minioadmin", "minioadmin",
+                                            "health-vault-documents", 5);
+        meterRegistry = new SimpleMeterRegistry();
+        service = new DocumentService(repository, encryptionService, mapper, minioClient, minioProps, docProps,
+                                      kafkaTemplate, auditService, meterRegistry);
     }
 
     // ---- upload ----------------------------------------------------------------

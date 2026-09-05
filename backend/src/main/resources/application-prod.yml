@@ -25,15 +25,21 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}    # empty string if no auth (dev); set in prod
 
-# Strict Actuator exposure — only health and info visible to load balancer probes
+# Strict Actuator exposure — health, info, and prometheus (for internal scraping only)
+# prometheus is intentionally included here so Prometheus can scrape it.
+# In a real prod deployment, restrict scrape access via network policy / reverse proxy auth,
+# not by hiding the endpoint (hiding it breaks monitoring).
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       show-details: never   # No internal detail leaked to unauthenticated callers
+  tracing:
+    sampling:
+      probability: 0.1   # 10% sampling in prod — reduce cost; raise per-incident if needed
 
 logging:
   level:

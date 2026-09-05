@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Human-readable console for local development -->
+    <springProfile name="local,default">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%blue(%t)] %cyan(%logger{36}) - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.healthvault" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Structured JSON for containerised / production environments.
+         Fields: timestamp, level, logger, thread, message, requestId, traceId, spanId,
+         plus any MDC keys populated by CorrelationIdFilter and Micrometer tracing. -->
+    <springProfile name="docker,prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>false</includeContext>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerCause>10</maxDepthPerCause>
+                    <exclude>sun\.reflect\..*</exclude>
+                    <exclude>java\.lang\.reflect\..*</exclude>
+                </throwableConverter>
+                <!-- Map MDC keys to consistent JSON field names -->
+                <mdcKeyFieldName>requestId=requestId</mdcKeyFieldName>
+                <mdcKeyFieldName>traceId=traceId</mdcKeyFieldName>
+                <mdcKeyFieldName>spanId=spanId</mdcKeyFieldName>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+        <logger name="com.healthvault" level="INFO"/>
+        <!-- Suppress noisy framework logs in production -->
+        <logger name="org.springframework.kafka" level="WARN"/>
+        <logger name="io.minio" level="WARN"/>
+    </springProfile>
+
+</configuration>

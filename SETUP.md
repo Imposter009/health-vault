@@ -10,9 +10,9 @@ Complete setup instructions for local development and higher environments (stagi
    - [Prerequisites](#1-prerequisites) — Java, Docker Desktop, Node.js, Angular CLI, IntelliJ, Maven, pgAdmin
    - [Environment File](#2-environment-file)
    - [Start Infrastructure](#3-start-infrastructure-docker)
-   - [Start Backend](#4-start-the-backend)
-   - [Start Gateway](#5-start-the-gateway)
-   - [Start Frontend](#6-start-the-frontend)
+   - [Start Backend](#4-start-the-backend-terminal-2)
+   - [Start Gateway](#5-start-the-gateway-terminal-3)
+   - [Start Frontend](#6-start-the-frontend-terminal-4)
    - [Optional — Tesseract](#7-optional--tesseract-for-image-ocr)
    - [Verify Everything Is Running](#8-verify-everything-is-running)
 2. [Higher Environments (Staging / Production)](#higher-environments-staging--production)
@@ -31,6 +31,28 @@ Complete setup instructions for local development and higher environments (stagi
 ---
 
 ## Local Development
+
+### Quick Start — What You Need to Run
+
+Health Vault requires **four separate terminal windows** running at the same time, plus Docker Desktop in the background. Here is the complete picture before you start:
+
+| # | What | Terminal command | Startup signal |
+|---|------|-----------------|----------------|
+| — | Docker infra | `docker compose -f infra/docker/docker-compose.yml up -d` | All containers show `(healthy)` |
+| 2 | Backend (Core API) | `cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=local` | `Started HealthVaultApplication` on port 8080 |
+| 3 | Gateway | `cd gateway && mvn spring-boot:run -Dspring-boot.run.profiles=local` | `Started GatewayApplication` on port 8081 |
+| 4 | Frontend | `cd frontend && ng serve --port 4299` | `Local: http://localhost:4299/` |
+
+> **The gateway (port 8081) MUST be running before the frontend works.** The Angular app sends every `/api/**` call to `http://localhost:8081`, not directly to the backend. If only the backend is up, the browser will see connection refused on every API call.
+
+**Correct startup order:**
+```
+Docker infra  →  Backend (8080)  →  Gateway (8081)  →  Frontend (4299)
+```
+
+Each step must fully start before launching the next. Full detail below.
+
+---
 
 ### 1. Prerequisites
 
@@ -198,6 +220,9 @@ For **local development the defaults work as-is** — no changes are required. T
 | `GATEWAY_RATE_REGISTER_BURST` | `5` | Register rate-limit: max burst |
 | `GATEWAY_RATE_UPLOAD_REPLENISH` | `5` | Document upload rate-limit: tokens/sec |
 | `GATEWAY_RATE_UPLOAD_BURST` | `10` | Document upload rate-limit: max burst |
+| `GRAFANA_ADMIN_USER` | `admin` | Grafana admin username |
+| `GRAFANA_ADMIN_PASSWORD` | `changeme_grafana` | Grafana admin password — change before any public deployment |
+| `ZIPKIN_ENDPOINT` | `http://localhost:9411/api/v2/spans` | OTel span export target (overridden in docker profile) |
 
 > **Never commit `.env`** — it is listed in `.gitignore`. Only `.env.example` (with safe placeholders) is committed.
 
@@ -205,77 +230,90 @@ For **local development the defaults work as-is** — no changes are required. T
 
 ### 3. Start Infrastructure (Docker)
 
-Health Vault depends on four external services — PostgreSQL, Redis, MinIO, and Kafka. Rather than installing these directly on your machine, they run as isolated Docker containers defined in `infra/docker/docker-compose.yml`. Docker Desktop manages their lifecycle; you get a clean, reproducible environment in one command.
+> **Terminal 1** — Docker Desktop must be running before this step (whale icon in system tray, steady — not animating).
 
-**Why each service is needed:**
-
-| Service | What it is | What Health Vault uses it for |
-|---|---|---|
-| **PostgreSQL** | Relational database | Stores users, health metrics, document metadata, audit logs, and refresh tokens. All tables are created automatically by Flyway on first backend startup. |
-| **Redis** | In-memory key-value store | Two jobs: (1) JWT blacklist — when you log out, your access token is added here so it can't be reused before it expires; (2) rate-limit counters — the gateway uses Redis token buckets to enforce per-IP/per-user request limits. |
-| **MinIO** | S3-compatible object storage | Stores the actual document files (PDFs, images) uploaded by users. The database only holds encrypted metadata; the raw bytes live in MinIO. Download links are presigned MinIO URLs that expire in 5 minutes. |
-| **Kafka** | Event streaming / message bus | Decouples document upload from OCR processing. When you upload a file, the backend immediately returns a 201 and publishes a `document.uploaded` event to Kafka. A separate consumer picks it up, runs OCR via Apache Tika, and publishes a `document.processed` event. This keeps uploads fast regardless of how long OCR takes. |
-
-Start all four services:
+Health Vault depends on several external services. Rather than installing these directly on your machine, they run as isolated Docker containers. Run this **once** from the repo root; `-d` sends them to the background:
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d
 ```
 
-The `-d` flag runs containers in the background (detached). Wait for all containers to report healthy:
+**Wait for all containers to report healthy** before continuing:
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml ps
 ```
 
-Expected output — all four should show `healthy`:
+Expected output:
 
 ```
-NAME                    STATUS
-healthvault-postgres    Up (healthy)
-healthvault-redis       Up (healthy)
-healthvault-minio       Up (healthy)
-healthvault-kafka       Up (healthy)
+NAME                          STATUS
+healthvault-postgres          Up (healthy)
+healthvault-redis             Up (healthy)
+healthvault-minio             Up (healthy)
+healthvault-kafka             Up (healthy)
+healthvault-prometheus        Up (healthy)
+healthvault-grafana           Up (healthy)
+healthvault-zipkin            Up (healthy)
+healthvault-redis-exporter    Up
 ```
 
-> Kafka takes the longest (~30 seconds) because it initialises its KRaft metadata log on first start. If it shows `starting`, wait 10 seconds and re-run `ps`.
+> Kafka takes the longest (~30 s) on first start. If it shows `starting`, wait 10 s and re-run `ps`. Grafana takes ~20 s to initialise its DB — it may show `starting` briefly.
 
-**MinIO web console:** open `http://localhost:9001` in your browser and log in with `minioadmin` / `minioadmin`. You can browse uploaded documents here, though it is not required for normal use.
+**Why each service is needed:**
+
+| Service | Port | What Health Vault uses it for |
+|---|---|---|
+| **PostgreSQL** | 5432 | All persistent data — users, metrics, documents, audit logs, refresh tokens |
+| **Redis** | 6379 | JWT blacklist (logout invalidation) + rate-limit token buckets (gateway) |
+| **MinIO** | 9000/9001 | Raw document file storage (PDFs, images); presigned download URLs |
+| **Kafka** | 9092 | Decouples upload from OCR — `document.uploaded` event triggers async Tika processing |
+| **Prometheus** | 9090 | Scrapes metrics from Core API and Gateway every 15 s |
+| **Grafana** | 3000 | Pre-provisioned dashboards — latency, uploads, auth signals, JVM health |
+| **Zipkin** | 9411 | Distributed trace UI — use trace ID from `X-Request-ID` header |
+| **Redis Exporter** | 9121 | Exposes Redis metrics to Prometheus |
 
 **Useful Docker commands:**
 
 ```bash
-# Stream logs from a specific service (useful for debugging)
+# Stream logs from a specific container
 docker logs healthvault-kafka -f
-docker logs healthvault-postgres -f
+docker logs healthvault-prometheus -f
 
-# Stop all services (data volumes are kept — safe for day-to-day use)
+# Stop all containers (volumes kept — data is safe)
 docker compose -f infra/docker/docker-compose.yml stop
 
 # Restart after stopping
 docker compose -f infra/docker/docker-compose.yml start
 
-# Full reset — stops containers AND deletes all data volumes (clean slate)
-# Use this if you want to start fresh or if Flyway migrations are in a bad state
+# Full reset — stops AND deletes all data volumes (clean slate)
 docker compose -f infra/docker/docker-compose.yml down -v
 ```
 
-> After `down -v` (data wipe), Flyway will re-run all migrations (V1–V7) and re-seed the demo users on next backend startup. Nothing needs to be done manually.
+> After `down -v`, Flyway re-runs all migrations and re-seeds demo users on next backend startup. Nothing needs to be done manually.
 
 ---
 
-### 4. Start the Backend
+### 4. Start the Backend (Terminal 2)
+
+> **Open a new terminal window.** Leave Terminal 1 (Docker) alone — do not run this in the same window.
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Or with the bundled wrapper (no global Maven install needed):
 
 ```bash
 cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Or if you have Maven installed globally:
+**Wait for this line in the output before continuing:**
 
-```bash
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+Started HealthVaultApplication in X.XXX seconds
 ```
 
 **On first startup, the following happen automatically — no manual action needed:**
@@ -287,7 +325,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 | MinIO bucket `health-vault-documents` | `MinioConfig` creates it on `ApplicationReadyEvent` if missing |
 | Kafka topics `document.uploaded` + `document.processed` | Spring `NewTopic` beans in `KafkaConfig` create them on startup |
 
-Verify the backend is up:
+Verify the backend is up (in any terminal — not the one running the backend):
 
 ```bash
 curl http://localhost:8080/api/health
@@ -297,41 +335,49 @@ curl http://localhost:8080/api/health
 The backend runs on port **8080** by default. To use a different port:
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local -Dspring-boot.run.arguments=--server.port=8098
+mvn spring-boot:run -Dspring-boot.run.profiles=local -Dspring-boot.run.arguments=--server.port=8098
 ```
 
 ---
 
-### 5. Start the Gateway
+### 5. Start the Gateway (Terminal 3)
 
-The gateway (Spring Cloud Gateway) sits in front of the Core API. The Angular frontend sends all `/api/**` requests to the gateway on port **8081**, which rate-limits and proxies them to the Core API on 8080.
+> **Open a third terminal window.** The gateway must start AFTER the backend — it tries to connect to Redis (rate limiting) on startup.
+
+The gateway (Spring Cloud Gateway) sits in front of the Core API. **The Angular frontend sends every `/api/**` call to the gateway on port 8081 — not directly to the backend.** If the gateway is not running, all frontend API calls fail immediately with a connection error.
 
 ```bash
 cd gateway
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Or with the Maven wrapper from the backend (if you haven't installed Maven globally):
+Or with the Maven wrapper:
 
 ```bash
 cd gateway
-../backend/mvnw spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Verify the gateway is up:
+**Wait for this line in the output before starting the frontend:**
+
+```
+Started GatewayApplication in X.XXX seconds
+```
+
+Verify the gateway is up (in a spare terminal):
 
 ```bash
 curl http://localhost:8081/actuator/health
 # Expected: {"status":"UP"}
 ```
 
-> **Redis must be running** before starting the gateway — it uses Redis for rate-limit token buckets. If Redis is down, the gateway starts but rate limiting will fail open (requests are allowed through with a warning log).
-
-> **Starting order:** Postgres → Redis → MinIO → Kafka → Core API → Gateway → Frontend.
+> **Redis must be running** before starting the gateway — it uses Redis for rate-limit token buckets. Docker Compose from step 3 covers this.
 
 ---
 
-### 6. Start the Frontend
+### 6. Start the Frontend (Terminal 4)
+
+> **Open a fourth terminal window.** The gateway (Terminal 3) must be fully started first.
 
 ```bash
 cd frontend
@@ -339,9 +385,17 @@ npm install --legacy-peer-deps
 ng serve --port 4299
 ```
 
-Open [http://localhost:4299](http://localhost:4299) in your browser. All API calls go to the gateway on `http://localhost:8081`.
+**Wait for this line:**
+
+```
+Local:   http://localhost:4299/
+```
+
+Then open [http://localhost:4299](http://localhost:4299) in your browser. Log in with any of the [Demo Credentials](#demo-credentials).
 
 > `--legacy-peer-deps` is required because some Angular 16 peer dependencies have not formally declared compatibility with each other.
+
+> If the page loads but every API call fails (network error in browser DevTools), check that the gateway on port 8081 is running — that is the most common cause.
 
 ---
 
@@ -390,32 +444,69 @@ Three users are pre-seeded by migration V7 and are ready to use the moment the b
 
 ### 8. Verify Everything Is Running
 
-Run through this checklist after first-time setup:
+Run through this checklist after first-time setup. Use a terminal that is **not** running any of the four processes above.
+
+**Step 1 — Core API**
 
 ```bash
-# 1. Core API health check
 curl http://localhost:8080/api/health
 # Expected: {"status":"UP","service":"health-vault-backend"}
+```
 
-# 2. Gateway health check
+**Step 2 — Gateway**
+
+```bash
 curl http://localhost:8081/actuator/health
 # Expected: {"status":"UP"}
+```
 
-# 3. Login with a pre-seeded demo user (through gateway)
-curl -X POST http://localhost:8081/api/auth/login \
+**Step 3 — Login through the gateway (proves the full proxy path works)**
+
+```bash
+curl -s -X POST http://localhost:8081/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@healthvault.local","password":"Demo@1234"}'
-# Copy the accessToken from the response
-
-# 4. View the audit log (replace <token> with the token from step 3)
-curl http://localhost:8081/api/audit-log/me \
-  -H "Authorization: Bearer <token>"
-# Expected: {"content":[{"action":"LOGIN_SUCCESS",...}],"totalElements":1,...}
-
-# 5. Open the Angular UI at http://localhost:4299
-#    Log in with demo@healthvault.local / Demo@1234
-#    Try uploading a PDF, then visit "Activity & Access Log" from the profile page
+# Expected: JSON with accessToken, refreshToken, expiresIn
+# Also check the response headers for X-Request-ID — that is the correlation / trace ID
 ```
+
+**Step 4 — Prometheus targets (proves metrics scraping is wired up)**
+
+Open `http://localhost:9090/targets` in the browser. You should see:
+
+| Job | State |
+|---|---|
+| `health-vault-core-api` | UP |
+| `health-vault-gateway` | UP |
+| `redis` | UP |
+| `prometheus` | UP |
+
+> If Core API or Gateway show as DOWN, confirm those processes are running and their actuator endpoints are reachable: `curl http://localhost:8080/actuator/prometheus` and `curl http://localhost:8081/actuator/prometheus` should return metric text.
+
+**Step 5 — Grafana dashboards (proves provisioning worked)**
+
+Open `http://localhost:3000` and log in with:
+- Username: `admin` (or `GRAFANA_ADMIN_USER` from your `.env`)
+- Password: `changeme_grafana` (or `GRAFANA_ADMIN_PASSWORD` from your `.env`)
+
+Navigate to **Dashboards** — four dashboards should be listed with no manual import:
+- Request Latency & Error Rate
+- Upload & Ingestion Throughput
+- Auth & Security Signals
+- JVM & System Health
+
+**Step 6 — Zipkin**
+
+Open `http://localhost:9411`. After making the login request in Step 3, click **Run Query** — you should see a trace for the login call showing both the gateway span and the Core API span.
+
+**Step 7 — Angular UI**
+
+Open `http://localhost:4299`. Log in with `demo@healthvault.local` / `Demo@1234`. Try:
+- Logging a health metric
+- Uploading a PDF
+- Visiting "Activity & Access Log" from the profile page
+
+After any action, return to Grafana — dashboard panels should show movement in the last 5 minutes.
 
 ---
 
@@ -754,24 +845,31 @@ Complete list of all environment variables the application reads:
 | `GATEWAY_RATE_REGISTER_BURST` | No | `5` | Register: burst capacity |
 | `GATEWAY_RATE_UPLOAD_REPLENISH` | No | `5` | Document upload: tokens per second |
 | `GATEWAY_RATE_UPLOAD_BURST` | No | `10` | Document upload: burst capacity |
+| `GRAFANA_ADMIN_USER` | No | `admin` | Grafana admin username — change before any internet-facing deployment |
+| `GRAFANA_ADMIN_PASSWORD` | No | `changeme_grafana` | Grafana admin password — **change before any internet-facing deployment** |
+| `ZIPKIN_ENDPOINT` | No | `http://localhost:9411/api/v2/spans` | OTel span export URL for local runs; overridden in `application-docker.yml` |
 
 ---
 
 ## Port Reference
 
-| Service | Port | Used By |
-|---|---|---|
-| **Gateway** | **8081** | **Frontend Angular app (all /api/** requests)** |
-| Backend API (Core) | 8080 | Gateway (proxied); also accessible directly for debugging |
-| Frontend dev server | 4299 | Browser (local dev only) |
-| PostgreSQL | 5432 | Backend Spring Boot |
-| Redis | 6379 | Backend Spring Boot (JWT blacklist) + Gateway (rate limiting) |
-| MinIO API (S3) | 9000 | Backend Spring Boot + presigned URL downloads |
-| MinIO Console | 9001 | Browser (admin UI — local dev / ops only) |
-| Kafka | 9092 | Backend Spring Boot producer + consumer |
-| Kafka Controller | 9093 | Internal Kafka KRaft (not exposed externally) |
+| Service | Port | Process | Used By |
+|---|---|---|---|
+| **Gateway** | **8081** | Terminal 3 | **Frontend Angular app (all `/api/**` requests)** |
+| Backend API (Core) | 8080 | Terminal 2 | Gateway (proxied); also accessible directly for debugging |
+| Frontend dev server | 4299 | Terminal 4 | Browser |
+| PostgreSQL | 5432 | Docker | Backend (all persistence) |
+| Redis | 6379 | Docker | Backend (JWT blacklist) + Gateway (rate limiting) |
+| MinIO API (S3) | 9000 | Docker | Backend (document storage) + presigned URL downloads |
+| MinIO Console | 9001 | Docker | Browser (admin UI — browse uploaded files) |
+| Kafka | 9092 | Docker | Backend (producer + consumer for OCR pipeline) |
+| Prometheus | 9090 | Docker | Browser (raw metrics, target status, PromQL) |
+| Grafana | 3000 | Docker | Browser (pre-provisioned dashboards) |
+| Zipkin | 9411 | Docker | Browser (distributed trace UI) |
+| Redis Exporter | 9121 | Docker | Prometheus (scrapes Redis metrics) |
+| Kafka Controller | 9093 | Docker | Internal Kafka KRaft (not exposed externally) |
 
 ---
 
-*Health Vault Setup Guide — Phases 0–5 complete*
+*Health Vault Setup Guide — Phases 0–7*
 *Last updated: August 2026*

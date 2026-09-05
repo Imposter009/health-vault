@@ -12,6 +12,8 @@ import com.healthvault.auth.entity.RefreshToken;
 import com.healthvault.auth.entity.User;
 import com.healthvault.auth.repository.RefreshTokenRepository;
 import com.healthvault.auth.repository.UserRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProperties jwtProperties;
     private final AuditService auditService;
+    private final MeterRegistry meterRegistry;
 
     /** Register a new user. Returns public profile (no password). */
     @Transactional
@@ -64,18 +67,28 @@ public class AuthService {
                 .orElseThrow(() -> {
                     auditService.record(AuditAction.LOGIN_FAILURE, AuditResourceType.USER, null, null,
                             Map.of("email", request.email(), "reason", "user_not_found"));
+                    loginCounter("failure").increment();
                     return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
                 });
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             auditService.record(AuditAction.LOGIN_FAILURE, AuditResourceType.USER, user.getId(), user.getId(),
                     Map.of("reason", "bad_password"));
+            loginCounter("failure").increment();
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         AuthResponse result = issueTokenPair(user);
         auditService.record(AuditAction.LOGIN_SUCCESS, AuditResourceType.USER, user.getId(), user.getId(), null);
+        loginCounter("success").increment();
         return result;
+    }
+
+    private Counter loginCounter(String outcome) {
+        return Counter.builder("auth.login.count")
+                .tag("outcome", outcome)
+                .description("Login attempts tagged by outcome (success/failure) — early warning for brute-force")
+                .register(meterRegistry);
     }
 
     /**

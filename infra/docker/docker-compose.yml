@@ -14,6 +14,8 @@ volumes:
   redis_data:
   minio_data:
   kafka_data:
+  prometheus_data:
+  grafana_data:
 
 services:
 
@@ -108,3 +110,88 @@ services:
       timeout: 10s
       retries: 8
       start_period: 30s
+
+  # ── Observability stack ──────────────────────────────────────────────────────
+
+  # Prometheus scrapes Core API (host:8080) and gateway (host:8081).
+  # host.docker.internal resolves to the Docker host machine; on Linux Docker
+  # the extra_hosts binding below maps the alias to host-gateway automatically.
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: healthvault-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    networks:
+      - healthvault-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q 'Prometheus Server is Healthy'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Grafana starts with a pre-provisioned Prometheus datasource and four dashboards.
+  # Admin credentials are set via env vars (see .env.example).
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: healthvault-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme_grafana}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - healthvault-net
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q '\"database\": \"ok\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Zipkin receives OTel spans from both Java modules.
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: healthvault-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - healthvault-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9411/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Redis exporter — exposes Redis metrics at :9121/metrics for Prometheus to scrape.
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    container_name: healthvault-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks:
+      - healthvault-net
+    depends_on:
+      redis:
+        condition: service_healthy

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Human-readable console for local development -->
+    <springProfile name="local,default">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%blue(%t)] %cyan(%logger{36}) - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.healthvault" level="DEBUG"/>
+    </springProfile>
+
+    <!-- Structured JSON for containerised / production environments.
+         Gateway runs on Netty/WebFlux; Micrometer tracing puts traceId and spanId
+         into MDC automatically via Hooks.enableAutomaticContextPropagation(). -->
+    <springProfile name="docker,prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>false</includeContext>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerCause>10</maxDepthPerCause>
+                    <exclude>sun\.reflect\..*</exclude>
+                    <exclude>java\.lang\.reflect\..*</exclude>
+                </throwableConverter>
+                <mdcKeyFieldName>traceId=traceId</mdcKeyFieldName>
+                <mdcKeyFieldName>spanId=spanId</mdcKeyFieldName>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+        <logger name="com.healthvault" level="INFO"/>
+        <logger name="org.springframework.cloud.gateway" level="WARN"/>
+        <logger name="reactor.netty" level="WARN"/>
+    </springProfile>
+
+</configuration>

@@ -1,0 +1,4 @@
+com\healthvault\gateway\config\KeyResolverConfig.class
+com\healthvault\gateway\config\RateLimitErrorFilter.class
+com\healthvault\gateway\config\RateLimitErrorFilter$1.class
+com\healthvault\gateway\GatewayApplication.class

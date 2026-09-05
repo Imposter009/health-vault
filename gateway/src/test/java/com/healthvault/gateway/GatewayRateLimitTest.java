@@ -2,8 +2,8 @@ package com.healthvault.gateway;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -25,9 +25,10 @@ import static org.mockito.Mockito.when;
 /**
  * Verifies that the gateway returns 429 when the rate limiter denies a request.
  *
- * Strategy: @MockBean the RedisRateLimiter so no real Redis is needed. The mock
- * returns "allowed" for the first N calls and "denied" thereafter. MockWebServer
- * acts as the Core API backend.
+ * Strategy: @MockBean the RedisRateLimiter so no real Redis is needed.
+ * Each test configures its own stub: "allowed" for the proxy test, "denied" for
+ * the 429 test. MockWebServer starts/stops once per class to avoid lifecycle issues
+ * with DynamicPropertySource (which runs once at context creation).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
@@ -52,24 +53,20 @@ class GatewayRateLimitTest {
         registry.add("spring.data.redis.port", () -> "6399");
     }
 
-    @BeforeEach
-    @SuppressWarnings("unchecked")
-    void setUp() {
-        // First request: allowed
-        when(rateLimiter.isAllowed(any(), any(), any())).thenReturn(
-                reactor.core.publisher.Mono.just(new RateLimiter.Response(true, Map.of())),
-                // Second request: denied (rate limited)
-                reactor.core.publisher.Mono.just(new RateLimiter.Response(false, Map.of()))
-        );
-    }
-
-    @AfterEach
-    void tearDown() throws IOException {
-        backendServer.shutdown();
+    @AfterAll
+    static void shutDownServer() throws IOException {
+        if (backendServer != null) {
+            backendServer.shutdown();
+        }
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void loginEndpoint_firstRequest_proxiedToBackend() {
+        // Rate limiter allows this request
+        when(rateLimiter.isAllowed(any(), any())).thenReturn(
+                reactor.core.publisher.Mono.just(new RateLimiter.Response(true, Map.of()))
+        );
         backendServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .addHeader("Content-Type", "application/json")
@@ -84,8 +81,13 @@ class GatewayRateLimitTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void loginEndpoint_afterRateLimitExceeded_returns429WithJson() {
-        // Second call is denied — no backend response needed
+        // Rate limiter denies this request — backend is never contacted
+        when(rateLimiter.isAllowed(any(), any())).thenReturn(
+                reactor.core.publisher.Mono.just(new RateLimiter.Response(false, Map.of()))
+        );
+
         webTestClient.post()
                 .uri("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)

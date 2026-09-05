@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: docker
+
+scrape_configs:
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Core API — Spring Boot runs on host port 8080
+  - job_name: health-vault-core-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: core-api
+
+  # Gateway — Spring Cloud Gateway runs on host port 8081
+  - job_name: health-vault-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: gateway
+
+  # Redis exporter — containerised, accessible via service name on healthvault-net
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']

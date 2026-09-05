@@ -3,6 +3,7 @@ package com.healthvault.gateway.config;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -14,8 +15,11 @@ public class KeyResolverConfig {
     /**
      * Rate-limit key: client IP address.
      * Used for public endpoints (login, register) where no JWT is present.
+     * Marked @Primary so Spring can unambiguously inject KeyResolver when a
+     * single bean is required (e.g. Spring Cloud Gateway auto-configuration).
      */
     @Bean
+    @Primary
     public KeyResolver ipKeyResolver() {
         return exchange -> {
             String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");

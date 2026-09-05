@@ -2,6 +2,7 @@ package com.healthvault.auth.service;
 
 import com.healthvault.audit.service.AuditService;
 import com.healthvault.auth.config.JwtProperties;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.healthvault.auth.dto.*;
 import com.healthvault.auth.entity.RefreshToken;
 import com.healthvault.auth.entity.User;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +36,7 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtProperties jwtProperties;
     @Mock private AuditService auditService;
+    @Spy  private SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     @InjectMocks private AuthService authService;
 

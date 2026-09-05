@@ -1,0 +1,122 @@
+# docker-compose.ci.yml — hermetic CI stack
+#
+# Extends the base compose file (docker-compose.yml) with the three application
+# services (core-api, gateway, frontend) built from local Dockerfiles.
+# Run from repo root:
+#
+#   docker compose -f infra/docker/docker-compose.yml \
+#                  -f infra/docker/docker-compose.ci.yml \
+#                  up --build --wait
+#
+# All services boot hermetically: no local maven/npm install needed.
+# Images are tagged with BUILD_SHA (defaults to "local" when not set by CI).
+#
+# Kafka advertisement: In CI containers cannot reach the host, so kafka uses
+# an internal listener. The core-api service is configured accordingly.
+
+version: "3.9"
+
+services:
+
+  # Override the base Kafka advertised listeners so containers reach it by
+  # service name rather than localhost (which only works for host-resident apps).
+  kafka:
+    environment:
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,INTERNAL://:9093,CONTROLLER://:9094"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,INTERNAL://kafka:9093"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9094"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+
+  # ── Application services ───────────────────────────────────────────────────
+
+  core-api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: healthvault/core-api:${BUILD_SHA:-local}
+    container_name: healthvault-core-api
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-healthvault}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-healthvault}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local_dev}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin_secret}
+      JWT_SECRET: ${JWT_SECRET:-ci-test-secret-must-be-at-least-32-chars-long}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ci-aes-256-key-must-be-32-bytes!}
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "0.0"
+      SPRING_ZIPKIN_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - healthvault-net
+
+  gateway:
+    build:
+      context: ../../gateway
+      dockerfile: Dockerfile
+    image: healthvault/gateway:${BUILD_SHA:-local}
+    container_name: healthvault-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      BACKEND_URI: http://core-api:8080
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-ci-test-secret-must-be-at-least-32-chars-long}
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "0.0"
+      SPRING_ZIPKIN_ENABLED: "false"
+    ports:
+      - "8081:8081"
+    depends_on:
+      core-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+    networks:
+      - healthvault-net
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    image: healthvault/frontend:${BUILD_SHA:-local}
+    container_name: healthvault-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ | grep -q '<app-root'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - healthvault-net
