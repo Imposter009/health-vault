@@ -32,6 +32,10 @@ public class DocumentExtraction {
     @Column(name = "extracted_text_encrypted", columnDefinition = "bytea")
     private byte[] extractedTextEncrypted;
 
+    // AES-256-GCM ciphertext of the AI-generated summary; null until AI processes the doc.
+    @Column(name = "summary_text_encrypted", columnDefinition = "bytea")
+    private byte[] summaryTextEncrypted;
+
     // JSON array of extraction matches: [{metricType, value, rawMatch}, ...]
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "extracted_metrics", columnDefinition = "jsonb", nullable = false)

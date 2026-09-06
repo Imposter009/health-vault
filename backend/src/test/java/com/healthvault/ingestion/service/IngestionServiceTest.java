@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +52,7 @@ class IngestionServiceTest {
     @Mock MinioClient                   minioClient;
     @Mock KafkaTemplate<String, Object> kafkaTemplate;
     @Mock MinioProperties               minioProps;
+    @Mock ApplicationEventPublisher     eventPublisher;
     @Mock GetObjectResponse             mockStream;    // MinIO's InputStream subclass
 
     IngestionService service;
@@ -63,7 +65,7 @@ class IngestionServiceTest {
         service = new IngestionService(
             documentRepository, extractionRepository, metricRepository,
             validationService, extractionService, ocrService,
-            encryptionService, minioClient, kafkaTemplate, minioProps);
+            encryptionService, minioClient, kafkaTemplate, eventPublisher, minioProps);
     }
 
     private Document uploadedDoc() {

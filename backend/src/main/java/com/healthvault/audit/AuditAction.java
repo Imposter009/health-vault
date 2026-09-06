@@ -11,5 +11,6 @@ public enum AuditAction {
     DOCUMENT_DELETED,
     METRIC_CREATED,
     METRIC_UPDATED,
-    METRIC_DELETED
+    METRIC_DELETED,
+    AI_QUERY
 }

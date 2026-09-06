@@ -55,5 +55,10 @@ export const routes: Routes = [
     loadComponent: () => import('./audit-log/audit-log.component').then((m) => m.AuditLogComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'ai/chat',
+    loadComponent: () => import('./ai/ai-chat/ai-chat.component').then((m) => m.AiChatComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: '/login' }
 ];

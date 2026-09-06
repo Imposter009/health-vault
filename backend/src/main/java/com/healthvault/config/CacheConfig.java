@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -15,6 +16,7 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
+@EnableAsync
 public class CacheConfig {
 
     @Bean
@@ -30,8 +32,15 @@ public class CacheConfig {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(jsonSerializer));
 
+        // Per-cache overrides: AI summaries are stable (long TTL);
+        // trend narrations expire after 1 hour to pick up new metric data.
+        RedisCacheConfiguration summaryConfig = defaults.entryTtl(Duration.ofHours(24));
+        RedisCacheConfiguration trendConfig   = defaults.entryTtl(Duration.ofHours(1));
+
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(defaults)
+                .withCacheConfiguration("ai-summaries", summaryConfig)
+                .withCacheConfiguration("ai-trend",     trendConfig)
                 .build();
     }
 }

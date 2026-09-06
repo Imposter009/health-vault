@@ -5,6 +5,7 @@ import com.healthvault.documents.DocumentStatus;
 import com.healthvault.documents.entity.Document;
 import com.healthvault.documents.repository.DocumentRepository;
 import com.healthvault.ingestion.entity.DocumentExtraction;
+import com.healthvault.ingestion.event.DocumentIngestionCompletedEvent;
 import com.healthvault.ingestion.event.DocumentProcessedEvent;
 import com.healthvault.ingestion.event.DocumentUploadedEvent;
 import com.healthvault.ingestion.extractor.ExtractionMatch;
@@ -17,6 +18,7 @@ import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ public class IngestionService {
     private final EncryptionService            encryptionService;
     private final MinioClient                  minioClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ApplicationEventPublisher     eventPublisher;
 
     // MinIO bucket is resolved from DocumentService's MinioProperties; to avoid
     // a cross-package dependency on the properties record, read it from the document row.
@@ -129,6 +132,9 @@ public class IngestionService {
             doc.setStatus(DocumentStatus.PROCESSED);
             doc.setProcessedAt(OffsetDateTime.now());
             doc.setMetricsExtractedCount(savedMetrics);
+            // Publish after-commit event so AI embedding can trigger asynchronously.
+            // If AI is disabled there is no listener and this publish is a no-op.
+            eventPublisher.publishEvent(new DocumentIngestionCompletedEvent(doc.getId(), doc.getUserId()));
         }
         documentRepository.save(doc);
 

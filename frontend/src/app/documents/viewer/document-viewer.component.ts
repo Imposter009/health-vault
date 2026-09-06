@@ -7,6 +7,7 @@ import { DocumentsService } from '../documents.service';
 import { DocumentResponse, DocumentStatusResponse } from '../models';
 import { OfflineDocumentCacheService } from '../../core/offline-document-cache.service';
 import { ConnectivityService } from '../../core/connectivity.service';
+import { AiService, SummarizeResponse } from '../../ai/ai.service';
 
 @Component({
   selector: 'app-document-viewer',
@@ -57,7 +58,24 @@ import { ConnectivityService } from '../../core/connectivity.service';
           </span>
           <span *ngSwitchCase="'FAILED'">❌ Processing failed: {{ docStatus.processingError }}</span>
         </ng-container>
+
+        <!-- AI Summarize button — only when PROCESSED and AI enabled -->
+        <button
+          *ngIf="docStatus.status === 'PROCESSED' && aiEnabled"
+          class="ai-summarize-btn"
+          [disabled]="summarizing"
+          (click)="summarize()">
+          {{ summarizing ? 'Summarizing…' : '✨ Summarize with AI' }}
+        </button>
       </div>
+
+      <!-- AI Summary panel -->
+      <div *ngIf="summary" class="ai-summary-panel">
+        <div class="ai-summary-header">AI-Generated Summary</div>
+        <p class="ai-summary-text">{{ summary.summary }}</p>
+        <p class="ai-disclaimer">This summary is AI-generated and should not replace professional medical advice.</p>
+      </div>
+      <div *ngIf="summaryError" class="ai-summary-panel ai-summary-error">{{ summaryError }}</div>
 
       <!-- PDF viewer -->
       <div *ngIf="!loading && !notAvailableOffline && isPdf" class="pdf-wrapper">
@@ -108,6 +126,22 @@ import { ConnectivityService } from '../../core/connectivity.service';
       display: flex; align-items: center; gap: 0.5rem;
     }
     .ocr-panel a { color: var(--color-primary,#0f766e); font-weight: 600; }
+    .ai-summarize-btn {
+      margin-left: auto; padding: 0.3rem 0.75rem;
+      background: var(--color-primary,#0f766e); color: #fff;
+      border: none; border-radius: 4px; font-size: 0.8125rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .ai-summarize-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ai-summary-panel {
+      margin: 0; padding: 1rem 1.5rem;
+      background: #f0fdf4; border-bottom: 1px solid var(--color-border,#e2e8f0);
+    }
+    .ai-summary-header { font-weight: 700; font-size: 0.875rem; color: #065f46; margin-bottom: 0.5rem; }
+    .ai-summary-text { margin: 0 0 0.5rem; font-size: 0.9rem; color: #1e293b; white-space: pre-wrap; }
+    .ai-disclaimer { margin: 0; font-size: 0.75rem; color: #94a3b8; font-style: italic; }
+    .ai-summary-error { background: #fef2f2; }
+    .ai-summary-error { color: #dc2626; font-size: 0.875rem; }
     .ocr-uploaded   { background: #e0f2fe; color: #0369a1; }
     .ocr-processing { background: #fef3c7; color: #d97706; }
     .ocr-processed  { background: var(--color-primary-light,#ccfbf1); color: var(--color-primary,#0f766e); }
@@ -138,13 +172,21 @@ export class DocumentViewerComponent implements OnInit, OnDestroy {
   get isPdf():   boolean { return (this.doc?.mimeType ?? '') === 'application/pdf'; }
   get isImage(): boolean { return (this.doc?.mimeType ?? '').startsWith('image/'); }
 
+  aiEnabled   = false;
+  summarizing = false;
+  summary:      SummarizeResponse | null = null;
+  summaryError: string | null = null;
+
   constructor(
     private route:        ActivatedRoute,
     private svc:          DocumentsService,
     private sanitizer:    DomSanitizer,
     private offlineCache: OfflineDocumentCacheService,
     private connectivity: ConnectivityService,
-  ) {}
+    private ai:           AiService,
+  ) {
+    this.ai.getStatus().subscribe(s => this.aiEnabled = s.enabled);
+  }
 
   ngOnInit(): void {
     this.docId = this.route.snapshot.paramMap.get('id')!;
@@ -234,5 +276,22 @@ export class DocumentViewerComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.zoom(event.deltaY < 0 ? 1.1 : 0.9);
     }
+  }
+
+  summarize(): void {
+    if (!this.docId || this.summarizing) return;
+    this.summarizing  = true;
+    this.summary      = null;
+    this.summaryError = null;
+
+    this.ai.summarize(this.docId).subscribe({
+      next: r => { this.summary = r; this.summarizing = false; },
+      error: err => {
+        this.summaryError = err?.status === 503
+          ? 'AI features are not available on this server.'
+          : 'Failed to summarize document. Please try again.';
+        this.summarizing = false;
+      }
+    });
   }
 }

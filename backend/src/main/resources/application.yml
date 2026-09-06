@@ -111,3 +111,21 @@ document:
 # re-encrypt stored ciphertexts — a noted future improvement not built here.
 encryption:
   document-key: ${DOCUMENT_ENCRYPTION_KEY:bG9jYWwtZGV2LWtleS0zMmJ5dGVzLW5vdC1zZWN1cmU=}
+
+# ---- AI features (Phase 10) -------------------------------------------
+# Set AI_FEATURES_ENABLED=true and OPENAI_API_KEY to activate.
+# All AI endpoints return 503 when disabled. Core app (Phases 0-9) is
+# completely unaffected by these settings.
+healthvault:
+  ai:
+    enabled: ${AI_FEATURES_ENABLED:false}
+    openai-api-key: ${OPENAI_API_KEY:not-set}
+    chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
+    embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+    summarization-max-input-chars: ${AI_SUMMARIZATION_MAX_INPUT_CHARS:12000}
+    max-response-tokens: ${AI_MAX_RESPONSE_TOKENS:512}
+    rag-top-k: ${AI_RAG_TOP_K:5}
+    chat-history-max-messages: ${AI_CHAT_HISTORY_MAX_MESSAGES:10}
+    trend-slope-threshold: ${AI_TREND_SLOPE_THRESHOLD:0.05}
+    chunk-size-chars: ${AI_CHUNK_SIZE_CHARS:1000}
+    chunk-overlap-chars: ${AI_CHUNK_OVERLAP_CHARS:200}

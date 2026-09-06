@@ -30,15 +30,17 @@ import java.time.Duration;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @ActiveProfiles("test")
-abstract class BaseIntegrationTest {
+public abstract class BaseIntegrationTest {
 
     static final String MINIO_USER     = "minioadmin";
     static final String MINIO_PASSWORD = "minioadmin";
     static final String BUCKET_NAME    = "health-vault-documents";
 
+    // pgvector/pgvector:pg16 is a drop-in for postgres:16 with the pgvector extension
+    // pre-installed. Required for V8 Flyway migration (CREATE EXTENSION IF NOT EXISTS vector).
     @Container
     static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            new PostgreSQLContainer<>("pgvector/pgvector:pg16")
                     .withDatabaseName("healthvault_test")
                     .withUsername("test")
                     .withPassword("test")

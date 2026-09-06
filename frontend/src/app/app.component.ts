@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ConnectivityService } from './core/connectivity.service';
 import { AuthService } from './auth/auth.service';
+import { AiService } from './ai/ai.service';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +29,7 @@ import { AuthService } from './auth/auth.service';
         <a routerLink="/dashboard" routerLinkActive="active" class="app-nav__link">Dashboard</a>
         <a routerLink="/documents" routerLinkActive="active" class="app-nav__link">Documents</a>
         <a routerLink="/audit-log" routerLinkActive="active" class="app-nav__link">Activity Log</a>
+        <a *ngIf="aiEnabled()" routerLink="/ai/chat" routerLinkActive="active" class="app-nav__link app-nav__link--ai">AI Chat</a>
       </nav>
 
       <button class="app-nav__signout" (click)="signOut()" [disabled]="signingOut()">
@@ -93,6 +95,12 @@ import { AuthService } from './auth/auth.service';
       color: var(--color-primary, #0f766e);
       background: var(--color-primary-light, #ccfbf1);
     }
+    .app-nav__link--ai {
+      border: 1px solid var(--color-primary, #0f766e);
+    }
+    .app-nav__link--ai.active, .app-nav__link--ai:hover {
+      background: var(--color-primary-light, #ccfbf1);
+    }
     .app-nav__signout {
       flex-shrink: 0;
       background: transparent;
@@ -138,8 +146,14 @@ export class AppComponent {
   readonly connectivity = inject(ConnectivityService);
   readonly auth         = inject(AuthService);
   private  router       = inject(Router);
+  private  aiSvc        = inject(AiService);
 
   signingOut = signal(false);
+  aiEnabled  = signal(false);
+
+  constructor() {
+    this.aiSvc.getStatus().subscribe(s => this.aiEnabled.set(s.enabled));
+  }
 
   signOut(): void {
     this.signingOut.set(true);

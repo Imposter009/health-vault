@@ -55,6 +55,8 @@ public class SecurityConfig {
                 // to prevent unauthenticated metric scraping (A05-001 fix).
                 .requestMatchers("/api/health", "/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/actuator/**").authenticated()
+                // AI status is public so the Angular SPA can discover AI availability before login
+                .requestMatchers("/api/ai/status").permitAll()
                 // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )

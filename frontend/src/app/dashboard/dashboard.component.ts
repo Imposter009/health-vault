@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 import { MetricsService } from '../metrics/metrics.service';
 import { DashboardGranularity, DashboardResponse, MetricType } from '../metrics/models';
 import { ConnectivityService } from '../core/connectivity.service';
+import { AiService, NarrationResponse } from '../ai/ai.service';
 
 Chart.register(...registerables);
 
@@ -78,6 +79,23 @@ Chart.register(...registerables);
         </div>
       </div>
 
+      <!-- AI Trend Narration — only for numeric metrics when AI is enabled -->
+      <div class="card ai-trend-card" style="margin-top:1.25rem;"
+           *ngIf="aiEnabled && metricType !== 'BLOOD_PRESSURE' && metricType !== 'WORKOUT'">
+        <div class="ai-trend-header">
+          <span>AI Trend Analysis</span>
+          <button class="ai-trend-btn" [disabled]="narratingTrend" (click)="getNarration()">
+            {{ narratingTrend ? 'Analysing…' : '✨ Analyse trend' }}
+          </button>
+        </div>
+        <ng-container *ngIf="narration">
+          <p *ngIf="narration.hasTrend" class="ai-trend-text">{{ narration.narration }}</p>
+          <p *ngIf="!narration.hasTrend" class="ai-trend-nodata">{{ narration.narration }}</p>
+          <p class="ai-disclaimer">AI-generated — not medical advice. Always consult your healthcare provider.</p>
+        </ng-container>
+        <p *ngIf="trendNarrationError" class="ai-trend-error">{{ trendNarrationError }}</p>
+      </div>
+
       <!-- Summary table -->
       <div class="card" style="margin-top:1.25rem;" *ngIf="data && data.buckets.length > 0">
         <table class="data-table">
@@ -131,6 +149,14 @@ Chart.register(...registerables);
     .chart-card { padding:1.25rem; }
     .chart-wrapper { position:relative; height:340px; }
     .data-table th.num, .data-table td.num { text-align:right; }
+    .ai-trend-card { padding:1rem 1.25rem; }
+    .ai-trend-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; font-weight:600; font-size:.9rem; color:#065f46; }
+    .ai-trend-btn { padding:.3rem .75rem; background:var(--color-primary,#0f766e); color:#fff; border:none; border-radius:4px; font-size:.8125rem; font-weight:600; cursor:pointer; font-family:inherit; }
+    .ai-trend-btn:disabled { opacity:.6; cursor:not-allowed; }
+    .ai-trend-text { margin:.5rem 0; font-size:.9rem; white-space:pre-wrap; color:#1e293b; }
+    .ai-trend-nodata { margin:.5rem 0; font-size:.875rem; color:#64748b; font-style:italic; }
+    .ai-trend-error { color:#dc2626; font-size:.875rem; margin:.5rem 0; }
+    .ai-disclaimer { margin:.5rem 0 0; font-size:.75rem; color:#94a3b8; font-style:italic; }
   `]
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -138,8 +164,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private svc          = inject(MetricsService);
   private connectivity = inject(ConnectivityService);
+  private ai           = inject(AiService);
   private chart:        Chart | null = null;
   private reconnectSub?: Subscription;
+
+  aiEnabled           = false;
+  narratingTrend      = false;
+  narration:           NarrationResponse | null = null;
+  trendNarrationError: string | null = null;
+
+  constructor() {
+    this.ai.getStatus().subscribe(s => this.aiEnabled = s.enabled);
+  }
 
   readonly metricTypes: MetricType[] = [
     'BLOOD_PRESSURE', 'BLOOD_SUGAR', 'WEIGHT', 'WORKOUT', 'HEART_RATE'
@@ -214,6 +250,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       type: 'line',
       data: chartData,
       options,
+    });
+  }
+
+  getNarration(): void {
+    if (this.narratingTrend) return;
+    this.narratingTrend      = true;
+    this.narration           = null;
+    this.trendNarrationError = null;
+
+    this.ai.getTrendNarration(this.metricType).subscribe({
+      next: r => { this.narration = r; this.narratingTrend = false; },
+      error: err => {
+        this.trendNarrationError = err?.status === 503
+          ? 'AI features are not available on this server.'
+          : 'Failed to load trend analysis. Please try again.';
+        this.narratingTrend = false;
+      }
     });
   }
 

@@ -83,3 +83,8 @@ rate-limit:
   auth:
     max-requests: 100    # high threshold so tests don't accidentally hit it
     window-seconds: 60
+
+# AI disabled in tests — no API key required; all AI endpoints return 503
+healthvault:
+  ai:
+    enabled: false
