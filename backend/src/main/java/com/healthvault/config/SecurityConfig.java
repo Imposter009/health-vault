@@ -50,8 +50,11 @@ public class SecurityConfig {
                 // logout needs the JWT filter to run but the path is still permitAll —
                 // the filter extracts and blacklists the token regardless)
                 .requestMatchers("/api/auth/**").permitAll()
-                // Health check and Actuator remain public
-                .requestMatchers("/api/health", "/actuator/**").permitAll()
+                // /actuator/health/** is public so Docker/load-balancer healthchecks work without a token.
+                // All other actuator endpoints (including /actuator/prometheus) require authentication
+                // to prevent unauthenticated metric scraping (A05-001 fix).
+                .requestMatchers("/api/health", "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").authenticated()
                 // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )

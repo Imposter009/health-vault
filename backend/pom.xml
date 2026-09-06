@@ -25,6 +25,8 @@
           Remove this override once the Artifactory virtual repo is updated.
         -->
         <tomcat.version>10.1.30</tomcat.version>
+        <!-- OWASP Dependency-Check: skip by default; run with -Ddependency-check.skip=false -->
+        <dependency-check.skip>true</dependency-check.skip>
     </properties>
 
     <dependencies>
@@ -240,6 +242,22 @@
                         <exclude>**/integration/**/*Test.java</exclude>
                         <exclude>**/*IT.java</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- OWASP Dependency-Check — CVE scan, skipped by default; run with -Powasp -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>10.0.4</version>
+                <configuration>
+                    <skip>${dependency-check.skip}</skip>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <suppressionFile>${project.basedir}/.owasp-suppression.xml</suppressionFile>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
                 </configuration>
             </plugin>
 

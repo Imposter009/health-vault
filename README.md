@@ -1,276 +1,244 @@
 # Health Vault
 
-Health Vault is a personal health and medical record vault — a secure, self-hosted platform that lets individuals store, manage, and share their health records (lab results, prescriptions, imaging, immunisations, etc.) with full audit trails and end-to-end encryption. The backend is a Spring Boot 3.x REST API backed by PostgreSQL, and the frontend is an Angular 16 PWA.
-
-> **Current phase: Phase 7 (Observability).** Phases 0–7 in progress. See [PROGRESS.md](PROGRESS.md) for full detail.
+A personal health record vault — upload medical documents, extract metrics automatically, and visualise trends over time. Built end-to-end across 9 phases as a full-stack reference project.
 
 ---
 
-## Repository Structure
+## Architecture
 
-```
-health-vault/
-├── backend/                  Spring Boot 3.3.5 (Java 17, Maven, PostgreSQL 15.4)
-│   ├── src/main/java/com/healthvault/
-│   │   ├── HealthVaultApplication.java
-│   │   ├── common/
-│   │   │   └── EncryptionService.java        ← AES-256-GCM field-level encryption
-│   │   ├── audit/                            ← audit trail (Phase 5)
-│   │   │   ├── AuditAction.java              ← 11-action enum
-│   │   │   ├── AuditResourceType.java
-│   │   │   ├── entity/AuditLog.java          ← JSONB metadata, nullable user_id
-│   │   │   ├── repository/                   ← JpaSpecificationExecutor + specs
-│   │   │   ├── service/AuditService.java     ← REQUIRES_NEW, fail-open
-│   │   │   ├── dto/AuditLogResponse.java
-│   │   │   └── controller/AuditLogController.java
-│   │   ├── auth/                             ← JWT auth, refresh tokens, rate-limit
-│   │   ├── metrics/                          ← health metric CRUD + dashboard
-│   │   ├── documents/                        ← secure document upload/download + status
-│   │   └── ingestion/                        ← async OCR pipeline (Kafka + Tika)
-│   │       ├── config/KafkaConfig.java       ← NewTopic beans
-│   │       ├── consumer/                     ← @KafkaListener on document.uploaded
-│   │       ├── event/                        ← DocumentUploadedEvent, DocumentProcessedEvent
-│   │       ├── extractor/                    ← MetricExtractor strategy + 4 implementations
-│   │       ├── repository/
-│   │       └── service/                      ← OcrService, MetricExtractionService, IngestionService
-│   ├── src/main/resources/
-│   │   ├── application.yml                   ← base config (JWT, MinIO, Kafka, encryption)
-│   │   ├── application-local.yml             ← localhost services
-│   │   ├── application-docker.yml            ← docker-compose services
-│   │   ├── application-prod.yml              ← env-var-only, no hardcoded secrets
-│   │   └── db/migration/
-│   │       ├── V1__init.sql                  ← schema bootstrap
-│   │       ├── V2__auth.sql                  ← users + refresh_tokens
-│   │       ├── V3__health_metrics.sql        ← health_metrics (JSONB)
-│   │       ├── V4__documents.sql             ← documents (encrypted_filename BYTEA)
-│   │       ├── V5__document_extractions.sql  ← processed_at, document_extractions table
-│   │       └── V6__audit_logs.sql            ← audit_logs (JSONB metadata, two indexes)
-│   └── pom.xml
-├── gateway/                  Spring Cloud Gateway 2023.0.3 (WebFlux, port 8081)
-│   ├── src/main/java/com/healthvault/gateway/
-│   │   ├── GatewayApplication.java
-│   │   └── config/
-│   │       ├── KeyResolverConfig.java        ← ipKeyResolver + userOrIpKeyResolver
-│   │       └── RateLimitErrorFilter.java     ← JSON body on 429
-│   ├── src/main/resources/
-│   │   ├── application.yml                   ← routes, rate-limit config, globalcors
-│   │   ├── application-local.yml
-│   │   └── application-docker.yml
-│   └── pom.xml
-├── frontend/                 Angular 16.2.15 PWA (standalone components)
-│   └── src/app/
-│       ├── auth/             ← login, register, interceptor, guard
-│       ├── metrics/          ← metric entry form, list, dashboard (Chart.js)
-│       ├── documents/        ← upload, list, viewer (PDF iframe + image zoom)
-│       └── audit-log/        ← activity log view (filter, day-grouping, pagination)
-├── infra/
-│   └── docker/
-│       └── docker-compose.yml   ← Postgres 15.4 + Redis 7 + MinIO + Kafka
-├── .github/
-│   └── workflows/ci.yml         ← backend-build + frontend-build + gateway-build jobs
-├── .env.example                 ← all environment variables (copy → .env)
-├── PROGRESS.md                  ← phase-by-phase dev log and AC verification
-├── SETUP.md                     ← local and higher-env setup guide
-└── README.md
+```mermaid
+graph TD
+    Browser["Browser\n(Angular 16 SPA)"]
+    GW["Spring Cloud Gateway\n:8081\nRate limiting · CORS · Routing"]
+    API["Core API\n:8080 (Spring Boot 3.3.5)"]
+    PG[("PostgreSQL 16\nhealthvault schema")]
+    Redis[("Redis 7\nJWT blacklist · rate-limit keys")]
+    Kafka["Apache Kafka\ndocument.uploaded topic"]
+    Minio[("MinIO\nObject storage")]
+
+    Browser -->|HTTP/JSON| GW
+    GW -->|Proxy /api/**| API
+    API --> PG
+    API --> Redis
+    API --> Kafka
+    API --> Minio
+    Kafka -->|Consumer| API
 ```
 
----
-
-## Prerequisites
-
-| Tool | Minimum version |
-|------|----------------|
-| Java | 17 LTS (17.0.6+ tested; 21 supported if locally installed) |
-| Maven | 3.9+ (or use the included `mvnw` wrapper) |
-| Node.js | LTS (20.x tested) |
-| npm | 9+ |
-| Docker Desktop | Latest stable |
+**Single-tier, single-region.** No microservice split — the Spring Boot monolith owns auth, metrics, documents, and ingestion. The gateway handles rate-limiting and CORS so those concerns stay out of application code.
 
 ---
 
-## Running Locally
+## Tech Stack
 
-> Full step-by-step setup with prerequisites is in [SETUP.md](SETUP.md). The summary below assumes all tools are installed.
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Frontend | Angular (standalone components) | 16.x |
+| API Gateway | Spring Cloud Gateway (WebFlux) | 2023.0.3 |
+| Backend | Spring Boot + Spring Security | 3.3.5 |
+| Language | Java | 17 |
+| Database | PostgreSQL | 16-alpine |
+| Schema migrations | Flyway | (Boot-managed) |
+| Cache / blacklist | Redis | 7-alpine |
+| Message bus | Apache Kafka | 7.6.0 (Confluent) |
+| Object storage | MinIO | RELEASE.2024-07-04 |
+| Container runtime | Docker + docker-compose | — |
+| Build (Java) | Maven | 3.9 |
+| Build (frontend) | Angular CLI + Nginx | 1.27-alpine |
 
-Health Vault needs **four processes running simultaneously**. Open four terminal windows and run one command per window in order.
+---
 
-### Step 1 — Environment file (once)
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Monolith over microservices** | Simpler local dev, fewer network hops, lower operational complexity for a single-team project |
+| **Spring Cloud Gateway as a separate process** | Rate limiting needs Redis-backed state; decoupling from the monolith means the gateway can be scaled or replaced without touching business code |
+| **JWT + opaque refresh tokens** | Short-lived JWTs (15 min) reduce revocation cost; opaque refresh tokens stored as SHA-256 hashes prevent token leakage if DB is read-only compromised |
+| **Refresh token rotation** | Old token revoked on every use — a reused token is a signal of theft |
+| **Apache Tika for MIME detection** | Client-supplied `Content-Type` is untrusted; Tika reads magic bytes to confirm the file is what it claims to be |
+| **AES-256-GCM for filename encryption** | Filenames can reveal diagnoses (e.g. `brain_mri_2025.pdf`); GCM provides authenticated encryption with a fresh IV per call |
+| **Kafka for ingestion decoupling** | Upload succeeds instantly; OCR + metric extraction runs asynchronously — upload latency is not coupled to Tesseract processing time |
+| **Fail-open on Kafka and Redis** | If Kafka is unreachable, the upload still succeeds (document stays UPLOADED). If Redis is unreachable, logout still revokes the refresh token in DB; rate-limiting fails open. Trade-off: availability over strict consistency. |
+| **JaCoCo + Testcontainers** | Real container-backed integration tests catch DB schema drift, Kafka offset behaviour, and MinIO permission issues that mocks miss |
+| **Actuator/prometheus behind auth (A05 fix)** | `/actuator/health/**` is public (healthchecks); all other actuator endpoints require authentication to prevent unauthenticated metric scraping |
+
+---
+
+## Project Phases
+
+| Phase | Deliverable |
+|-------|-------------|
+| 0 | Scaffold: Spring Boot + Angular + Docker Compose |
+| 1 | Auth: JWT + opaque refresh tokens + Redis blacklist |
+| 2 | Health metrics: CRUD + PostgreSQL JSONB + JPA |
+| 3 | Dashboard API: DashboardService + JdbcTemplate + Redis cache |
+| 4 | Document upload: MinIO + Apache Tika + file size/MIME validation |
+| 5 | Ingestion pipeline: Kafka producer/consumer + OCR (Tesseract) + metric extraction |
+| 6 | API Gateway: Spring Cloud Gateway + Redis rate limiting + CORS |
+| 7 | Observability: Micrometer + Zipkin + structured logging (Logstash) + audit log |
+| 8 | Testing: Unit (Mockito/Jasmine) + Integration (Testcontainers) + E2E (Playwright) + CI pipeline |
+| 9 | Security & hardening: OWASP self-review + dependency scan + k6 load test + A05 fix + README |
+
+---
+
+## Local Setup
+
+### Prerequisites
+
+- Docker Desktop (or equivalent)
+- Java 17 + Maven 3.9 (for backend development)
+- Node 20 + npm (for frontend development)
+- k6 (optional, for load testing)
+
+### Start the full stack
 
 ```bash
-cp .env.example .env
-```
-
-Defaults work for local dev as-is. In any real deployment replace `JWT_SECRET`, `DOCUMENT_ENCRYPTION_KEY`, and `GRAFANA_ADMIN_PASSWORD`.
-
-### Step 2 — Docker infrastructure (Terminal 1)
-
-```bash
+# From the repo root
 docker compose -f infra/docker/docker-compose.yml up -d
-docker compose -f infra/docker/docker-compose.yml ps   # wait: all services healthy
+
+# Verify all services healthy
+docker compose -f infra/docker/docker-compose.yml ps
 ```
 
-| Service        | Port | Purpose |
-|----------------|------|---------|
-| postgres       | 5432 | Primary database |
-| redis          | 6379 | JWT blacklist + rate-limit window |
-| minio          | 9000 / 9001 | Document object storage |
-| kafka          | 9092 | Async OCR event bus |
-| prometheus     | 9090 | Metrics scraper |
-| grafana        | 3000 | Pre-provisioned dashboards |
-| zipkin         | 9411 | Distributed trace UI |
-| redis-exporter | 9121 | Redis → Prometheus bridge |
+Services start on:
 
-### Step 3 — Backend on port 8080 (Terminal 2)
+| Service | URL |
+|---------|-----|
+| Angular SPA | http://localhost:4200 (dev server) |
+| Spring Cloud Gateway | http://localhost:8081 |
+| Core API (direct) | http://localhost:8080 |
+| MinIO Console | http://localhost:9001 (minioadmin / minioadmin) |
+| Kafka UI | — (no UI container; use `kafka-console-consumer`) |
+
+### Run backend only (dev mode)
 
 ```bash
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Wait for `Started HealthVaultApplication` before continuing. Flyway applies all DB migrations automatically on first startup.
-
-### Step 4 — Gateway on port 8081 (Terminal 3)
-
-> **Do not skip.** The frontend sends every API call to port 8081. Without the gateway the app will not work.
-
-```bash
-cd gateway
-mvn spring-boot:run -Dspring-boot.run.profiles=local
-```
-
-Wait for `Started GatewayApplication`.
-
-### Step 5 — Frontend on port 4299 (Terminal 4)
+### Run frontend only (dev mode)
 
 ```bash
 cd frontend
-npm install --legacy-peer-deps
-ng serve --port 4299
+npm install
+npm start
+# Opens http://localhost:4200
 ```
-
-Open [http://localhost:4299](http://localhost:4299) and log in with `demo@healthvault.local` / `Demo@1234`.
 
 ---
 
-## Environment Variables
+## Testing
 
-All variables are documented in [`.env.example`](.env.example). Key groups:
+### Backend unit tests
 
-| Group | Variables |
-|-------|-----------|
-| Spring profile | `SPRING_PROFILES_ACTIVE` |
-| PostgreSQL | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` |
-| Redis | `REDIS_HOST`, `REDIS_PORT` |
-| MinIO | `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME`, `MINIO_PRESIGNED_URL_EXPIRY_MINUTES` |
-| Kafka | `KAFKA_BOOTSTRAP_SERVERS` (default `localhost:9092`) |
-| JWT | `JWT_SECRET`, `JWT_ACCESS_TOKEN_TTL_MINUTES`, `JWT_REFRESH_TOKEN_TTL_DAYS` |
-| Encryption | `DOCUMENT_ENCRYPTION_KEY` (base64-encoded 32-byte AES key — field-level encryption for filenames and OCR text) |
-| Document limits | `DOCUMENT_MAX_SIZE_BYTES` (default 26214400 = 25 MB) |
-| Gateway | `GATEWAY_PORT` (default 8081), `CORE_API_URL` (default `http://localhost:8080`), rate-limit tuning vars |
-| Observability | `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`, `ZIPKIN_ENDPOINT` |
+```bash
+cd backend
+mvn test
+# JaCoCo report: target/site/jacoco/index.html
+```
+
+### Backend integration tests (requires Docker)
+
+```bash
+cd backend
+mvn verify -Dsurefire.excludedGroups=integration -Dfailsafe.groups=integration
+```
+
+### Gateway unit tests
+
+```bash
+cd gateway
+mvn test
+```
+
+### Frontend unit tests
+
+```bash
+cd frontend
+npm test                  # interactive (watch mode)
+npm run test:coverage     # single run + coverage report
+```
+
+### End-to-end tests (Playwright)
+
+```bash
+# Requires full stack running (docker compose up -d)
+cd frontend
+npm run e2e
+```
+
+### Load test (k6)
+
+```bash
+# Requires docker compose up -d and k6 installed
+TOKEN=$(curl -s -X POST http://localhost:8081/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"load@test.com","password":"LoadTest123!"}' | jq -r .accessToken)
+
+TOKEN=$TOKEN k6 run docs/k6-load-test.js
+```
+
+See `docs/load-test-results.md` for threshold definitions and expected behaviour.
 
 ---
 
-## CI
+## CI Pipeline
 
-GitHub Actions (`.github/workflows/ci.yml`) runs three jobs on every push and PR:
-- **backend-build** — `mvn -B verify -DskipTests` on JDK 17
-- **frontend-build** — `npm ci && npm run build` on Node LTS
-- **gateway-build** — `mvn -B verify -DskipTests` on JDK 17 (gateway module)
+`.github/workflows/ci.yml` runs 8 jobs on every push:
 
-The workflow file is ready; activate it by adding a GitHub remote once one is configured.
+| Job | When | What |
+|-----|------|------|
+| `backend-unit` | Always | `mvn test` + JaCoCo |
+| `gateway-unit` | Always | `mvn test` + JaCoCo |
+| `frontend-unit` | Always | Karma/Jasmine + coverage |
+| `frontend-build` | After unit | `ng build --configuration=production` |
+| `backend-integration` | After unit | Testcontainers (Postgres + Kafka + Redis + MinIO) |
+| `security` | After unit | npm audit (critical) + OWASP Dependency-Check |
+| `docker-images` | After integration + build | `docker build` all three images (no push) |
+| `compose-smoke` | After docker-images | Full stack boot + curl smoke tests |
+
+Registry push is commented out in the workflow. Configure `DOCKER_USERNAME` / `DOCKER_PASSWORD` secrets and uncomment to enable.
 
 ---
 
-## API Endpoints
+## Security Posture
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/health` | No | Service health check |
-| `POST` | `/api/auth/register` | No | Register → 201 |
-| `POST` | `/api/auth/login` | No | Login → tokens |
-| `POST` | `/api/auth/refresh` | No | Rotate refresh token |
-| `POST` | `/api/auth/logout` | Yes | Revoke tokens → 204 |
-| `GET` | `/api/users/me` | Yes | Current user profile |
-| `POST` | `/api/metrics` | Yes | Log a health metric → 201 |
-| `GET` | `/api/metrics` | Yes | List metrics (paged, filterable) |
-| `GET` | `/api/metrics/dashboard` | Yes | Bucketed aggregations for chart |
-| `GET` | `/api/metrics/{id}` | Yes | Single metric |
-| `PUT` | `/api/metrics/{id}` | Yes | Update metric value |
-| `DELETE` | `/api/metrics/{id}` | Yes | Soft delete metric → 204 |
-| `POST` | `/api/documents` | Yes | Upload document (multipart) → 201 |
-| `GET` | `/api/documents` | Yes | List documents (paged, filterable) |
-| `GET` | `/api/documents/{id}` | Yes | Document metadata |
-| `GET` | `/api/documents/{id}/download-url` | Yes | Presigned MinIO URL (5 min TTL) |
-| `GET` | `/api/documents/{id}/status` | Yes | OCR processing status + metrics extracted count |
-| `DELETE` | `/api/documents/{id}` | Yes | Soft-delete DB row + hard-delete MinIO object → 204 |
-| `GET` | `/api/audit-log/me` | Yes | Current user's audit log (paged, filterable by action/date) |
+Full details: `docs/owasp-review.md`
 
-> **Note:** In Phase 5, all `/api/**` requests are routed through the gateway on **port 8081**, which adds rate limiting and CORS before forwarding to the Core API on 8080.
+### OWASP Top 10 (2021)
 
-## Observability (Phase 7)
+| Category | Status |
+|----------|--------|
+| A01 Broken Access Control | PASS — userId always from JWT, not client input |
+| A02 Cryptographic Failures | PASS — AES-256-GCM (fresh IV), BCrypt, SHA-256 refresh tokens |
+| A03 Injection | PASS — JPA parameterized queries; Tika MIME; extension sanitized |
+| A04 Insecure Design | PASS — token rotation, blacklisting, rate limiting |
+| A05 Security Misconfiguration | **Fixed** — actuator auth applied (A05-001) |
+| A06 Vulnerable Components | Scanned — see `docs/dependency-scan-results.md` |
+| A07 Auth Failures | PASS — BCrypt, rate limit, JWT validation, blacklist on logout |
+| A08 Data Integrity | PASS — Tika magic-byte validation + MIME allowlist |
+| A09 Logging/Monitoring | PASS — audit log for all auth + document events |
+| A10 SSRF | PASS — no user-controlled URL fetching |
 
-The full observability stack starts with `docker compose up` alongside the existing infra services.
+### Dependency scan
 
-### Access points
-
-| Tool | URL | Purpose |
-|------|-----|---------|
-| Grafana | http://localhost:3000 | Dashboards (login with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env`) |
-| Prometheus | http://localhost:9090 | Raw metrics, target status, PromQL scratchpad |
-| Zipkin | http://localhost:9411 | Distributed traces — find a trace by `X-Request-ID` header value |
-
-### Grafana dashboards
-
-Four dashboards are pre-provisioned at Grafana startup — no manual import needed.
-
-| Dashboard | What it answers |
-|-----------|----------------|
-| **Request Latency & Error Rate** | p50/p95/p99 latency per route for Core API and gateway; 5xx error rate; throughput (req/s) |
-| **Upload & Ingestion Throughput** | Uploads per minute by category; upload and processing duration distribution; PROCESSED vs FAILED ratio; in-flight / stuck document indicator |
-| **Auth & Security Signals** | Login success/failure rate per minute; failure ratio gauge (early brute-force signal); rate-limiter 429s by route |
-| **JVM & System Health** | Heap used/max, GC pause rate, thread count, and process CPU for both modules |
-
-### Correlation IDs
-
-Every request carries a single `X-Request-ID` header that unifies three systems:
-
-- **Response header** — returned to the client on every response from the gateway
-- **Structured logs** — appears as `requestId` (Core API) and is the Micrometer `traceId` (gateway) in JSON log lines
-- **Zipkin trace** — the trace ID in Zipkin equals the `X-Request-ID` value
-
-To trace a request end-to-end:
-1. Capture `X-Request-ID` from any API response header.
-2. Open Zipkin at `http://localhost:9411/zipkin/traces/<X-Request-ID>` to see the full gateway → Core API → Postgres span.
-3. Or grep structured logs: `docker logs healthvault-backend 2>&1 | jq 'select(.requestId == "<id>")'`
-
-> **Note:** Kafka publish/consume boundaries are not traced — trace propagation across the document.uploaded / document.processed topics is deferred to when the worker is split into a separate service.
-
-### Prod profile actuator surface
-
-In production, only these actuator endpoints are exposed — nothing else:
-
-```
-/actuator/health
-/actuator/info
-/actuator/prometheus
-```
-
-### Grafana credentials
-
-Set `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in your `.env` file before starting the stack. Defaults in `.env.example` are `admin` / `changeme_grafana` — **change these before any internet-facing deployment**.
+- **Java:** OWASP Dependency-Check plugin wired (`-Ddependency-check.skip=false` to run)
+- **npm:** 58 vulnerabilities, all in dev dependencies or Angular 16.x framework locked at 16.x. No exploitable paths in this architecture. Details and accept-risk rationale in `docs/dependency-scan-results.md`.
+- **Dependabot:** `.github/dependabot.yml` sends weekly PRs for Maven + npm + Docker updates
 
 ---
 
 ## Roadmap
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| 0 | Monorepo scaffold, health check end-to-end | ✅ Complete |
-| 1 | Authentication — JWT, refresh tokens, rate-limit | ✅ Complete |
-| 2 | Health metric tracking — CRUD + Chart.js dashboard | ✅ Complete |
-| 3 | Document vault — MinIO upload, AES-256-GCM field encryption, presigned URLs | ✅ Complete |
-| 4 | Async OCR pipeline — Kafka KRaft, Tika text extraction, health metric auto-extraction | ✅ Complete |
-| 5 | API Gateway (Spring Cloud Gateway, Redis rate-limit) + Audit Trail (immutable event log, self-service view) | ✅ Complete |
-| **7 (current)** | Observability — Micrometer, Prometheus, Grafana, structured JSON logging, correlation IDs, Zipkin tracing | 🔄 In progress |
-| 8 | Containerisation, Kubernetes manifests, production hardening |
+| Item | Priority |
+|------|----------|
+| Replace single-key AES with KMS-backed key management (AWS KMS / HashiCorp Vault) | High |
+| Enable MinIO server-side encryption at rest in production | High |
+| Configure CORS for production origins (not localhost) | High (pre-deploy blocker) |
+| Upgrade Angular 16.x → 18.x (LTS) when team bandwidth allows | Medium |
+| Add account lockout after N failed logins (complement rate limiting) | Medium |
+| Export audit log to centralised SIEM (Splunk / ELK) | Medium |
+| Add k6 load test results once live stack is available | Low |
+| Prometheus alerting rules for `auth.login.count{outcome="failure"}` spike | Low |
