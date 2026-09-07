@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface AiStatus {
   enabled: boolean;
@@ -35,7 +36,7 @@ export interface NarrationResponse {
 @Injectable({ providedIn: 'root' })
 export class AiService {
 
-  private readonly base = '/api/ai';
+  private readonly base = `${environment.apiBaseUrl}/ai`;
 
   /** Cached status observable — only one HTTP call per app session. */
   private readonly status$: Observable<AiStatus>;

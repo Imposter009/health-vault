@@ -75,6 +75,34 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@userOrIpKeyResolver}"
 
+        # --- AI: chat endpoint (user-keyed, LLM calls are expensive — tight cap) ---
+        - id: ai-chat
+          uri: ${CORE_API_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/ai/chat
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${GATEWAY_RATE_AI_CHAT_REPLENISH:2}
+                redis-rate-limiter.burstCapacity: ${GATEWAY_RATE_AI_CHAT_BURST:5}
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userOrIpKeyResolver}"
+
+        # --- AI: narration (user-keyed; cached result so tighter cap is fine) ---
+        - id: ai-trend
+          uri: ${CORE_API_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/ai/metrics/trend/**
+            - Method=GET
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${GATEWAY_RATE_AI_TREND_REPLENISH:5}
+                redis-rate-limiter.burstCapacity: ${GATEWAY_RATE_AI_TREND_BURST:10}
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userOrIpKeyResolver}"
+
         # --- Catch-all: proxy all remaining /api/** to Core API without rate limiting ---
         - id: core-api-catchall
           uri: ${CORE_API_URL:http://localhost:8080}

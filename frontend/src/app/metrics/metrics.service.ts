@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   DashboardGranularity,
   DashboardResponse,
@@ -14,7 +15,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class MetricsService {
   private http = inject(HttpClient);
-  private base = '/api/metrics';
+  private base = `${environment.apiBaseUrl}/metrics`;
 
   create(req: MetricRequest): Observable<MetricResponse> {
     return this.http.post<MetricResponse>(this.base, req);

@@ -3,6 +3,7 @@ import {
   HttpClient, HttpEventType, HttpRequest, HttpResponse
 } from '@angular/common/http';
 import { Observable, interval, map, filter, switchMap, takeWhile, take } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   DocumentCategory, DocumentResponse, DocumentStatusResponse, DownloadUrlResponse, PageResponse
 } from './models';
@@ -16,7 +17,7 @@ export interface UploadProgress {
 @Injectable({ providedIn: 'root' })
 export class DocumentsService {
 
-  private readonly base = '/api/documents';
+  private readonly base = `${environment.apiBaseUrl}/documents`;
 
   constructor(private http: HttpClient) {}
 
