@@ -1,0 +1,1424 @@
+{
+  "info": {
+    "_postman_id": "f3a1c2d4-5e6f-4a1b-9c3d-healthvault01",
+    "name": "health-vault",
+    "description": "API collection for the Health Vault backend, covering every endpoint implemented through Phase 10 (Auth, Health Metrics, Documents, Audit Log, and optional AI features). Generated from the actual @RestController classes, request/response DTOs, and validation annotations in the codebase — not from design docs.\n\nTargets **local development only** (`localhost`). Not intended for use against any deployed environment as-is.\n\nSee `postman/README.md` for the recommended run order and fixture setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "event": [],
+  "variable": [],
+  "item": [
+    {
+      "name": "00 - Health & Status",
+      "description": "Unauthenticated liveness checks for all three local processes: the Core API's own /api/health, the Gateway's actuator, and the Core API's actuator (direct, bypassing the gateway). No prerequisites — these can run before anything else.",
+      "item": [
+        {
+          "name": "Core API Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Custom liveness endpoint (com.healthvault.controller.HealthController) proxied through the gateway's catch-all route. Always returns 200 with a static status payload — does not check DB/Redis/MinIO connectivity."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response reports UP', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('UP');",
+                  "    pm.expect(body.service).to.eql('health-vault-backend');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Gateway Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health endpoint on the Gateway process itself (port 8081). The gateway has no Spring Security starter, so this is fully public. Requires the gateway's own dependencies (Redis, for the rate limiter) to be reachable to report UP."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Gateway reports UP', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Actuator Health (Core API)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/actuator/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health endpoint on the Core API process, hit DIRECTLY on port 8080 (bypassing the gateway on purpose — useful when debugging whether a failure is in the gateway or the core service). SecurityConfig explicitly permits `/actuator/health` and `/actuator/health/**` without a token; all other actuator paths require authentication."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Core API reports UP', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Auth",
+      "description": "Registration, login, token refresh, and the current-user lookup. Run this folder first — Login populates {{accessToken}} which every other authenticated folder depends on (via collection-level Bearer auth, inherited unless a request overrides it).\n\nNOTE ON ORDERING: Logout is placed LAST in this folder (after Get Current User), not where it appears in some phase checklists — logging out blacklists the access token, which would break every folder that runs after it in a full top-to-bottom collection run. Run Logout only when you intend to end the session.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"fullName\": \"Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Creates a new user account. Validation (RegisterRequest): `email` must be non-blank and a valid email; `password` must be at least 8 characters; `fullName` non-blank. Returns 201 with the public user profile (never the password hash). A duplicate email returns 409 (see the Negative & Edge Cases folder).\n\nThe pre-request script randomizes {{userEmail}} with a timestamp suffix so this collection can be re-run from a clean state without colliding with a previous run's account."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Randomize the test email per run so re-running the whole collection",
+                  "// doesn't 409 against an account created by a previous run.",
+                  "const base = pm.environment.get('userEmail') || 'testuser@healthvault.local';",
+                  "const localPart = base.split('@')[0].replace(/\\+.*$/, '');",
+                  "const domain = base.split('@')[1] || 'healthvault.local';",
+                  "pm.environment.set('userEmail', `${localPart}+${Date.now()}@${domain}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has user profile shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.email).to.eql(pm.environment.get('userEmail'));",
+                  "    pm.expect(body.fullName).to.eql('Test User');",
+                  "    pm.expect(body).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticates and issues a JWT access token + opaque refresh token. Rate-limited: at the gateway, 1 request/sec replenish with a burst of 5; at the Core API, 5 requests per 60s window per client IP (fixed window, Redis-backed, fails open if Redis is down). Saves accessToken/refreshToken/expiresIn into the environment on success."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has token pair', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.refreshToken).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.expiresIn).to.be.a('number');",
+                  "    pm.environment.set('accessToken', body.accessToken);",
+                  "    pm.environment.set('refreshToken', body.refreshToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Exchanges a valid, non-revoked refresh token for a brand new access + refresh pair. Rotation: the old refresh token is revoked server-side the instant this succeeds, so both {{accessToken}} and {{refreshToken}} MUST be updated in the environment — reusing the old refresh token afterward returns 401 'Refresh token has been revoked'."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Rotated token pair saved', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.refreshToken).to.be.a('string').and.not.empty;",
+                  "    pm.environment.set('accessToken', body.accessToken);",
+                  "    pm.environment.set('refreshToken', body.refreshToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Current User (/api/users/me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            },
+            "description": "Returns the profile of the user identified by the JWT's subject claim. Requires a valid, non-blacklisted Bearer token (inherited from the collection's Authorization settings)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has current user profile', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.email).to.eql(pm.environment.get('userEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Blacklists the current access token's jti in Redis (for the remainder of its natural lifetime) and revokes the given refresh token in the database. Requires the Authorization header (inherited) AND the refresh token in the body.\n\nWARNING: running this leaves {{accessToken}} unusable. It is placed last in this folder deliberately — every other folder in this collection needs a live token. Re-run the Login request to get a fresh session afterward."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Health Metrics",
+      "description": "CRUD for health metrics plus dashboard aggregation. Requires a valid {{accessToken}} from the Auth folder. Each Create request saves the new metric's id into {{metricId}} (last one created wins) so the Get/Update/Delete requests below work without manual editing.\n\nThe `value` field's shape is validated server-side per metricType (MetricValidationService) — see each request's description for the exact required keys and ranges.",
+      "item": [
+        {
+          "name": "Create Metric - Blood Pressure",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricType\": \"BLOOD_PRESSURE\",\n  \"value\": {\n    \"systolic\": 120,\n    \"diastolic\": 80\n  },\n  \"recordedAt\": \"2026-08-20T08:00:00Z\",\n  \"notes\": \"Morning reading, seated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "value.systolic: number, 60-300. value.diastolic: number, 40-200, must be less than systolic. Violating either returns 400 from MetricValidationService."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Metric persisted with correct type', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.metricType).to.eql('BLOOD_PRESSURE');",
+                  "    pm.environment.set('metricId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Metric - Blood Sugar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricType\": \"BLOOD_SUGAR\",\n  \"value\": {\n    \"mgPerDl\": 95,\n    \"context\": \"FASTING\"\n  },\n  \"recordedAt\": \"2026-08-20T07:30:00Z\",\n  \"notes\": \"Before breakfast\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "value.mgPerDl: number, 10-1000. value.context: one of FASTING, POST_MEAL, RANDOM (enforced by MetricValidationService, not a real enum type on the wire)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Metric persisted with correct type', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.metricType).to.eql('BLOOD_SUGAR');",
+                  "    pm.environment.set('metricId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Metric - Weight",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricType\": \"WEIGHT\",\n  \"value\": {\n    \"kg\": 72.5\n  },\n  \"recordedAt\": \"2026-08-19T06:00:00Z\",\n  \"notes\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "value.kg: number, 1-500."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Metric persisted with correct type', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.metricType).to.eql('WEIGHT');",
+                  "    pm.environment.set('metricId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Metric - Workout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricType\": \"WORKOUT\",\n  \"value\": {\n    \"type\": \"Running\",\n    \"durationMinutes\": 30,\n    \"intensity\": \"MODERATE\"\n  },\n  \"recordedAt\": \"2026-08-18T17:00:00Z\",\n  \"notes\": \"5k, easy pace\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "value.type: non-empty string (free text). value.durationMinutes: number, 1-600. value.intensity: one of LOW, MODERATE, HIGH."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Metric persisted with correct type', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.metricType).to.eql('WORKOUT');",
+                  "    pm.environment.set('metricId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create Metric - Heart Rate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metricType\": \"HEART_RATE\",\n  \"value\": {\n    \"bpm\": 72\n  },\n  \"recordedAt\": \"2026-08-22T09:00:00Z\",\n  \"notes\": \"Resting\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "value.bpm: number, 20-300. This request runs last in the Create block, so {{metricId}} points at this Heart Rate metric for the Get/Update/Delete requests below."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Metric persisted with correct type', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.metricType).to.eql('HEART_RATE');",
+                  "    pm.environment.set('metricId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Metrics (with filters/pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics?page=0&size=20&metricType=HEART_RATE&from=2026-08-01T00:00:00Z&to=2026-08-22T23:59:59Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "metricType", "value": "HEART_RATE", "disabled": true, "description": "Optional filter: one of BLOOD_PRESSURE, BLOOD_SUGAR, WEIGHT, WORKOUT, HEART_RATE" },
+                { "key": "from", "value": "2026-08-01T00:00:00Z", "disabled": true, "description": "Optional ISO-8601 date-time lower bound on recordedAt" },
+                { "key": "to", "value": "2026-08-22T23:59:59Z", "disabled": true, "description": "Optional ISO-8601 date-time upper bound on recordedAt" }
+              ]
+            },
+            "description": "Returns the current user's metrics only, sorted by recordedAt descending. metricType/from/to are optional filters (disabled by default in this request so the plain paginated list is exercised — enable them to test filtering)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Pagination envelope is present', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('content').that.is.an('array');",
+                  "    pm.expect(body).to.have.property('page');",
+                  "    pm.expect(body).to.have.property('size');",
+                  "    pm.expect(body).to.have.property('totalElements');",
+                  "    pm.expect(body).to.have.property('totalPages');",
+                  "    pm.expect(body).to.have.property('last');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Metric by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/{{metricId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics", "{{metricId}}"]
+            },
+            "description": "Fetches a single metric owned by the current user. Returns 404 (not 403) if the id doesn't exist or belongs to someone else — see the Negative & Edge Cases folder."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returned metric matches metricId', () => {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.environment.get('metricId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update Metric",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": {\n    \"bpm\": 75\n  },\n  \"recordedAt\": \"2026-08-22T09:00:00Z\",\n  \"notes\": \"Updated after recheck\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/{{metricId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics", "{{metricId}}"]
+            },
+            "description": "metricType is intentionally NOT part of MetricUpdateRequest — it cannot be changed after creation. {{metricId}} currently points at the Heart Rate metric created above, so this body reuses the HEART_RATE value shape (bpm)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Value was updated', () => {",
+                  "    pm.expect(pm.response.json().value.bpm).to.eql(75);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete Metric (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/{{metricId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics", "{{metricId}}"]
+            },
+            "description": "Deletes the metric currently referenced by {{metricId}} (the Heart Rate metric from this run)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Dashboard Aggregation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/dashboard?metricType=BLOOD_PRESSURE&from=2026-08-01T00:00:00Z&to=2026-08-22T23:59:59Z&granularity=WEEK",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics", "dashboard"],
+              "query": [
+                { "key": "metricType", "value": "BLOOD_PRESSURE" },
+                { "key": "from", "value": "2026-08-01T00:00:00Z" },
+                { "key": "to", "value": "2026-08-22T23:59:59Z" },
+                { "key": "granularity", "value": "WEEK", "description": "One of DAY, WEEK, MONTH — defaults to DAY if omitted" }
+              ]
+            },
+            "description": "Buckets the user's metrics by the given granularity. metricType/from/to are required query params; granularity defaults to DAY. Bucket shape varies by metricType: numeric types (WEIGHT, HEART_RATE, BLOOD_SUGAR) populate avg/min/max; BLOOD_PRESSURE populates avgSystolic/avgDiastolic/minSystolic/maxSystolic; WORKOUT populates totalDurationMinutes. Unused fields are null per bucket."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has dashboard shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.metricType).to.eql('BLOOD_PRESSURE');",
+                  "    pm.expect(body.granularity).to.eql('WEEK');",
+                  "    pm.expect(body).to.have.property('buckets').that.is.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Documents",
+      "description": "Upload, list, fetch, and delete health documents. Requires a valid {{accessToken}} from the Auth folder. Upload Document saves the new document's id into {{documentId}} for the requests below.\n\nUpload is multipart/form-data and references a local fixture file (postman/fixtures/sample-lab-report.pdf) by relative path — Postman file uploads store an absolute local path, which does NOT travel with a JSON export. If the file field shows empty/red after importing this collection on a different machine, re-attach it manually (see postman/README.md).",
+      "item": [
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "fixtures/sample-lab-report.pdf" },
+                { "key": "category", "value": "LAB_REPORT", "type": "text", "description": "One of LAB_REPORT, PRESCRIPTION, SCAN, INSURANCE, OTHER" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            },
+            "description": "Uploads a file (max 25MB, MIME allowlist: application/pdf, image/jpeg, image/png — detected server-side via Apache Tika magic-byte sniffing, not trusted from the client Content-Type). The bundled fixture is a small synthetic PDF containing placeholder text ('Glucose: 95 mg/dL', 'Blood Pressure: 120/80 mmHg') so this request also doubles as a way to manually exercise the Phase 4 OCR/extraction pipeline once the document finishes async processing. Publishes a document.uploaded Kafka event on success (fire-and-forget; upload still succeeds if Kafka is unreachable)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Document persisted as UPLOADED', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.category).to.eql('LAB_REPORT');",
+                  "    pm.expect(body.status).to.eql('UPLOADED');",
+                  "    pm.expect(body.mimeType).to.eql('application/pdf');",
+                  "    pm.environment.set('documentId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Documents (with filters/pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "category", "value": "LAB_REPORT", "disabled": true, "description": "Optional filter: LAB_REPORT, PRESCRIPTION, SCAN, INSURANCE, OTHER" },
+                { "key": "status", "value": "UPLOADED", "disabled": true, "description": "Optional filter: UPLOADED, PROCESSING, PROCESSED, FAILED" }
+              ]
+            },
+            "description": "Returns the current user's non-deleted documents, sorted by uploadedAt descending."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Pagination envelope is present', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('content').that.is.an('array');",
+                  "    pm.expect(body).to.have.property('page');",
+                  "    pm.expect(body).to.have.property('totalElements');",
+                  "    pm.expect(body).to.have.property('totalPages');",
+                  "    pm.expect(body).to.have.property('last');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Document by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}"]
+            },
+            "description": "Fetches document metadata (never the raw file bytes — use Get Download URL for that). 404 if not found or not owned by the caller."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returned document matches documentId', () => {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.environment.get('documentId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Download URL (presigned)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}/download-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}", "download-url"]
+            },
+            "description": "Returns a short-lived MinIO presigned URL (default 5-minute expiry) for downloading the original file directly from object storage. Also records a DOCUMENT_VIEWED audit log entry."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has presigned URL shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.url).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.expiryMinutes).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Document Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}", "status"]
+            },
+            "description": "Polls the async OCR/extraction pipeline's progress for this document. Status starts at UPLOADED, moves to PROCESSING then PROCESSED (or FAILED with processingError populated) once the Kafka consumer picks up the document.uploaded event. Immediately after upload this will usually still read UPLOADED or PROCESSING — that is expected, not a bug."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has status shape', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(['UPLOADED', 'PROCESSING', 'PROCESSED', 'FAILED']).to.include(body.status);",
+                  "    pm.expect(body).to.have.property('metricsExtracted');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{documentId}}"]
+            },
+            "description": "Soft-deletes the DB row (sets deletedAt) and hard-deletes the object from MinIO. If the MinIO delete fails the soft-delete still proceeds (object may already be gone)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Audit Log",
+      "description": "Read-only audit trail for the current user. Requires a valid {{accessToken}}. Prerequisite: running the Auth and/or Health Metrics/Documents folders first produces entries worth seeing (REGISTER, LOGIN_SUCCESS, DOCUMENT_UPLOADED, etc.) — the log will still return 200 with an empty page on a brand new account otherwise.",
+      "item": [
+        {
+          "name": "Get My Audit Trail (with filters/pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-log/me?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audit-log", "me"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "action", "value": "LOGIN_SUCCESS", "disabled": true, "description": "Optional filter: LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, REGISTER, DOCUMENT_UPLOADED, DOCUMENT_VIEWED, DOCUMENT_DOWNLOADED, DOCUMENT_DELETED, METRIC_CREATED, METRIC_UPDATED, METRIC_DELETED, AI_QUERY" },
+                { "key": "from", "value": "2026-08-01T00:00:00Z", "disabled": true, "description": "Optional ISO-8601 date-time lower bound on createdAt" },
+                { "key": "to", "value": "2026-08-22T23:59:59Z", "disabled": true, "description": "Optional ISO-8601 date-time upper bound on createdAt" }
+              ]
+            },
+            "description": "The user id is taken from the validated JWT subject claim, never from a request parameter — callers cannot query another user's audit trail. `size` is capped at 100 server-side regardless of what's requested.\n\nNOTE: unlike Metrics/Documents (which use a custom PageResponse envelope with a `page` field), this endpoint returns Spring Data's native `Page<T>` JSON shape directly — the current page index field is named `number`, not `page`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Spring Page envelope is present', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('content').that.is.an('array');",
+                  "    pm.expect(body).to.have.property('number');",
+                  "    pm.expect(body).to.have.property('size');",
+                  "    pm.expect(body).to.have.property('totalElements');",
+                  "    pm.expect(body).to.have.property('totalPages');",
+                  "    pm.expect(body).to.have.property('last');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - AI",
+      "description": "AI features (Phase 10) — document summarization, RAG chat over uploaded documents, and trend narration. AI Feature Status is always present and unauthenticated; every other request in this folder is registered ONLY when the server is started with AI_FEATURES_ENABLED=true and a valid OPENAI_API_KEY — otherwise a catch-all controller returns 503 for the entire /api/ai/** tree (except /api/ai/status). See the Negative & Edge Cases folder for an explicit assertion of that disabled behavior.",
+      "item": [
+        {
+          "name": "AI Feature Status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "status"]
+            },
+            "description": "Always registered, no auth required, so the Angular SPA can discover AI availability before login. Reflects the healthvault.ai.enabled server property."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has enabled flag', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('enabled').that.is.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Summarize Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/documents/{{documentId}}/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "documents", "{{documentId}}", "summary"]
+            },
+            "description": "Summarizes a document's extracted OCR text via an LLM (result cached per document). Requires AI_FEATURES_ENABLED=true and OPENAI_API_KEY. Also requires the document to have finished OCR extraction (status PROCESSED) — if it's still UPLOADED/PROCESSING this returns 404 'Document not processed yet'. Ownership is verified before calling the LLM (404 if the document isn't yours)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.response.code;",
+                  "if (code === 503) {",
+                  "    pm.test('AI disabled on this instance (503)', () => pm.response.to.have.status(503));",
+                  "} else if (code === 404) {",
+                  "    pm.test('AI enabled but document not yet processed (404) - expected if OCR hasn\\'t finished', () => pm.response.to.have.status(404));",
+                  "} else {",
+                  "    pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "    pm.test('Response has summary shape', () => {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body.documentId).to.eql(pm.environment.get('documentId'));",
+                  "        pm.expect(body.summary).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "RAG Chat",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is my most recent blood pressure reading?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "chat"]
+            },
+            "description": "Retrieval-augmented chat over the caller's own uploaded documents (pgvector similarity search scoped to userId — never cross-user). `question` max 2000 chars. `conversationId` is optional; omit it to start a new conversation, or pass a previous response's conversationId to continue one (history capped server-side). Requires AI_FEATURES_ENABLED=true."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.response.code;",
+                  "if (code === 503) {",
+                  "    pm.test('AI disabled on this instance (503)', () => pm.response.to.have.status(503));",
+                  "} else {",
+                  "    pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "    pm.test('Response has chat answer shape', () => {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body).to.have.property('conversationId');",
+                  "        pm.expect(body.answer).to.be.a('string').and.not.empty;",
+                  "        pm.expect(body).to.have.property('sources').that.is.an('array');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Trend Narration",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/metrics/trend/HEART_RATE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "metrics", "trend", "HEART_RATE"]
+            },
+            "description": "Generates a plain-English narration of the trend in the caller's recent metrics of the given type (path variable, one of BLOOD_PRESSURE, BLOOD_SUGAR, WEIGHT, WORKOUT, HEART_RATE). hasTrend is false (and narration null) when the relative slope doesn't clear the configured threshold — that is a valid, non-error outcome, not a failure. Requires AI_FEATURES_ENABLED=true."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.response.code;",
+                  "if (code === 503) {",
+                  "    pm.test('AI disabled on this instance (503)', () => pm.response.to.have.status(503));",
+                  "} else {",
+                  "    pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "    pm.test('Response has narration shape', () => {",
+                  "        const body = pm.response.json();",
+                  "        pm.expect(body).to.have.property('hasTrend').that.is.a('boolean');",
+                  "        pm.expect(body).to.have.property('direction');",
+                  "        pm.expect(body).to.have.property('percentChange').that.is.a('number');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Negative & Edge Cases",
+      "description": "Deliberate failure-path exercises: each request is crafted to trigger a specific error response. This is a manual/exploratory testing aid and living reference for error shapes — not a replacement for the Playwright/Testcontainers suites from Phase 8. Requires a valid {{accessToken}} for most requests (a couple deliberately override auth to test the no-token/bad-token paths).",
+      "item": [
+        {
+          "name": "Register - Duplicate Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"AnotherPassw0rd!\",\n  \"fullName\": \"Duplicate Attempt\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Reuses {{userEmail}}, which the Auth > Register request already created this run. AuthService.register() checks existsByEmail() and returns a deliberately generic 409 message (no confirmation of which field conflicted, to limit information leakage)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409 Conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login - Wrong Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"DefinitelyWrongPassword!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "A valid email with an incorrect password. AuthService returns the same generic 401 'Invalid credentials' whether the email doesn't exist or the password is wrong, so callers can't enumerate registered emails."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Metric - Not Owned",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics/{{$guid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics", "{{$guid}}"]
+            },
+            "description": "A random UUID that doesn't exist (Postman's {{$guid}} dynamic variable generates a fresh one per request). HealthMetricService looks up by (id, userId) together, so a nonexistent id and someone else's real id are indistinguishable from the caller's point of view — both return 404, never 403 (avoids confirming a resource exists for another tenant)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Document - Not Owned",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{$guid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "{{$guid}}"]
+            },
+            "description": "Same reasoning as 'Get Metric - Not Owned': DocumentService.findByIdAndUserIdAndDeletedAtIsNull scopes the lookup to the caller, so a nonexistent or not-owned id both return 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload - Oversized File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "fixtures/oversized-file.pdf" },
+                { "key": "category", "value": "OTHER", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            },
+            "description": "postman/fixtures/oversized-file.pdf is a sparse (zero-filled) file just over the 25MB limit — its logical size is what DocumentService checks (file.getSize()), so the content itself doesn't matter for this test. DocumentService rejects it before any MinIO/Tika work happens."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload - Unsupported MIME Type",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "fixtures/unsupported-file.txt" },
+                { "key": "category", "value": "OTHER", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            },
+            "description": "A plain-text file. DocumentService uses Apache Tika to sniff the real content type from magic bytes (never trusting the client's declared Content-Type) and rejects anything outside {application/pdf, image/jpeg, image/png}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Access Protected Endpoint - No Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            },
+            "description": "No Authorization header at all. SecurityConfig disables the anonymous-authentication filter specifically so this hits the custom AuthenticationEntryPoint (401), rather than falling through to an AccessDeniedException (403) — 403 would incorrectly imply 'you're identified but not allowed', when really no identity was presented at all."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('Error body identifies missing auth', () => {",
+                  "    pm.expect(pm.response.json().error).to.eql('UNAUTHORIZED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Access Protected Endpoint - Expired/Blacklisted Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{tempBlacklistedToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            },
+            "description": "Tests the actual blacklist security boundary end-to-end rather than just a malformed string: the pre-request script logs in a fresh session, immediately logs it out (which blacklists that access token's jti in Redis for the remainder of its natural TTL), and uses that now-revoked token here. JwtAuthenticationFilter.isBlacklisted() must reject it with 401 even though the token is otherwise well-formed and unexpired.\n\nRequires an async-capable Postman/Newman (pre-request scripts use `await pm.sendRequest`) — Postman ≥ v10 or Newman ≥ v6. See postman/README.md if this errors on an older client."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Spin up a throwaway session, then immediately burn it via logout,",
+                  "// so we have a real (not just malformed) blacklisted access token to test against.",
+                  "// Never rejects: any failure here (e.g. server unreachable) falls back to a",
+                  "// clearly-invalid placeholder so the main request still runs and fails its",
+                  "// own assertion cleanly, instead of crashing the whole collection run.",
+                  "function sendRequest(options) {",
+                  "    return new Promise((resolve) => {",
+                  "        pm.sendRequest(options, (err, res) => resolve(err ? null : res));",
+                  "    });",
+                  "}",
+                  "",
+                  "(async () => {",
+                  "    pm.environment.set('tempBlacklistedToken', 'setup-failed-see-prerequest-script-log');",
+                  "    try {",
+                  "        const baseUrl = pm.environment.get('baseUrl');",
+                  "        const email = pm.environment.get('userEmail');",
+                  "        const password = pm.environment.get('userPassword');",
+                  "",
+                  "        const loginRes = await sendRequest({",
+                  "            url: `${baseUrl}/api/auth/login`,",
+                  "            method: 'POST',",
+                  "            header: { 'Content-Type': 'application/json' },",
+                  "            body: { mode: 'raw', raw: JSON.stringify({ email, password }) }",
+                  "        });",
+                  "        if (!loginRes) return;",
+                  "        const tokens = loginRes.json();",
+                  "",
+                  "        await sendRequest({",
+                  "            url: `${baseUrl}/api/auth/logout`,",
+                  "            method: 'POST',",
+                  "            header: {",
+                  "                'Content-Type': 'application/json',",
+                  "                'Authorization': `Bearer ${tokens.accessToken}`",
+                  "            },",
+                  "            body: { mode: 'raw', raw: JSON.stringify({ refreshToken: tokens.refreshToken }) }",
+                  "        });",
+                  "",
+                  "        pm.environment.set('tempBlacklistedToken', tokens.accessToken);",
+                  "    } catch (e) {",
+                  "        console.log('Blacklist setup failed: ' + e.message);",
+                  "    }",
+                  "})();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('Error body indicates token revocation', () => {",
+                  "    pm.expect(pm.response.json().message).to.match(/revoked|invalid|expired/i);",
+                  "});",
+                  "pm.environment.unset('tempBlacklistedToken');"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login - Rate Limit Exceeded",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"WrongOnPurpose!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "RateLimitFilter caps /api/auth/login at 5 requests per 60s window per client IP (fixed window, Redis-backed). The pre-request script fires 5 throwaway login attempts against the same path before this request runs as the 6th, which should trip the limiter regardless of credentials (the filter runs before authentication logic). If the gateway's own token-bucket limiter (replenishRate=1/s, burst=5) trips first, that also yields 429 — either way this asserts the ceiling exists.\n\nRequires an async-capable Postman/Newman (see the previous request's note)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function sendRequest(options) {",
+                  "    return new Promise((resolve) => {",
+                  "        pm.sendRequest(options, () => resolve());",
+                  "    });",
+                  "}",
+                  "",
+                  "(async () => {",
+                  "    const baseUrl = pm.environment.get('baseUrl');",
+                  "    const email = pm.environment.get('userEmail');",
+                  "    for (let i = 0; i < 5; i++) {",
+                  "        await sendRequest({",
+                  "            url: `${baseUrl}/api/auth/login`,",
+                  "            method: 'POST',",
+                  "            header: { 'Content-Type': 'application/json' },",
+                  "            body: { mode: 'raw', raw: JSON.stringify({ email, password: 'BurstAttempt!' }) }",
+                  "        });",
+                  "    }",
+                  "})();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 429 Too Many Requests', () => pm.response.to.have.status(429));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "AI Endpoint - AI Disabled (expect 503)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/metrics/trend/HEART_RATE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "metrics", "trend", "HEART_RATE"]
+            },
+            "description": "Only meaningful when the server is running with AI_FEATURES_ENABLED=false or unset (the local dev default) — AiDisabledController's catch-all matches the whole /api/ai/** tree except /api/ai/status and returns 503, not 404, so clients can tell 'feature exists but is off' apart from 'endpoint doesn't exist'. If AI is actually enabled on this instance, the test below logs that fact instead of failing, since the disabled path genuinely isn't reachable in that configuration."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 503) {",
+                  "    pm.test('Status code is 503 Service Unavailable', () => pm.response.to.have.status(503));",
+                  "} else {",
+                  "    console.log(`AI is enabled on this instance (got ${pm.response.code}) - the disabled-path negative case does not apply here.`);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

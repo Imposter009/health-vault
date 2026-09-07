@@ -1,0 +1,4 @@
+This is a plain-text synthetic fixture used only to exercise the Health Vault
+document-upload MIME-type allowlist rejection path (expects HTTP 400).
+
+It contains no real, personal, or health-related information.
