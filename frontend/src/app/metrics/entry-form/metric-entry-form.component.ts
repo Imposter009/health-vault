@@ -18,7 +18,10 @@ import { ConnectivityService } from '../../core/connectivity.service';
   template: `
     <div class="page-container" style="max-width:560px;">
       <div class="page-header">
-        <h1 class="page-title">Log Health Metric</h1>
+        <div>
+          <h1 class="page-title">Log Health Metric</h1>
+          <p class="page-subtitle">A minute now saves you guesswork later — every reading feeds your trends and AI insights.</p>
+        </div>
       </div>
 
       <!-- Offline guard -->
@@ -45,7 +48,7 @@ import { ConnectivityService } from '../../core/connectivity.service';
           </div>
 
           <!-- BLOOD_PRESSURE -->
-          <ng-container *ngIf="selectedType === 'BLOOD_PRESSURE'" [formGroup]="valueGroup">
+          <div class="field-row" *ngIf="selectedType === 'BLOOD_PRESSURE'" [formGroup]="valueGroup">
             <div class="field">
               <label>Systolic (mmHg)</label>
               <input type="number" formControlName="systolic" min="60" max="250" />
@@ -56,10 +59,10 @@ import { ConnectivityService } from '../../core/connectivity.service';
               <input type="number" formControlName="diastolic" min="40" max="150" />
               <span class="hint" *ngIf="valueGroup.get('diastolic')?.invalid && valueGroup.get('diastolic')?.touched">Required</span>
             </div>
-          </ng-container>
+          </div>
 
           <!-- BLOOD_SUGAR -->
-          <ng-container *ngIf="selectedType === 'BLOOD_SUGAR'" [formGroup]="valueGroup">
+          <div class="field-row" *ngIf="selectedType === 'BLOOD_SUGAR'" [formGroup]="valueGroup">
             <div class="field">
               <label>Blood Sugar (mg/dL)</label>
               <input type="number" formControlName="mgPerDl" min="20" max="600" />
@@ -73,7 +76,7 @@ import { ConnectivityService } from '../../core/connectivity.service';
                 <option value="RANDOM">Random</option>
               </select>
             </div>
-          </ng-container>
+          </div>
 
           <!-- WEIGHT -->
           <ng-container *ngIf="selectedType === 'WEIGHT'" [formGroup]="valueGroup">
@@ -91,18 +94,20 @@ import { ConnectivityService } from '../../core/connectivity.service';
               <input type="text" formControlName="type" placeholder="e.g. Running, Cycling, Yoga" />
               <span class="hint" *ngIf="valueGroup.get('type')?.invalid && valueGroup.get('type')?.touched">Required</span>
             </div>
-            <div class="field">
-              <label>Duration (minutes)</label>
-              <input type="number" formControlName="durationMinutes" min="1" max="600" />
-              <span class="hint" *ngIf="valueGroup.get('durationMinutes')?.invalid && valueGroup.get('durationMinutes')?.touched">Required</span>
-            </div>
-            <div class="field">
-              <label>Intensity</label>
-              <select formControlName="intensity">
-                <option value="LOW">Low</option>
-                <option value="MODERATE">Moderate</option>
-                <option value="HIGH">High</option>
-              </select>
+            <div class="field-row">
+              <div class="field">
+                <label>Duration (minutes)</label>
+                <input type="number" formControlName="durationMinutes" min="1" max="600" />
+                <span class="hint" *ngIf="valueGroup.get('durationMinutes')?.invalid && valueGroup.get('durationMinutes')?.touched">Required</span>
+              </div>
+              <div class="field">
+                <label>Intensity</label>
+                <select formControlName="intensity">
+                  <option value="LOW">Low</option>
+                  <option value="MODERATE">Moderate</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </div>
             </div>
           </ng-container>
 
@@ -136,6 +141,8 @@ import { ConnectivityService } from '../../core/connectivity.service';
     .offline-notice { text-align:center; padding:2.5rem; }
     .offline-icon { font-size:2rem; display:block; margin-bottom:.75rem; }
     .offline-notice p { margin:0 0 1.25rem; color:var(--color-text-secondary,#64748b); }
+    .field-row { display:grid; grid-template-columns: 1fr 1fr; gap: 0 .75rem; }
+    @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
     .form-actions { display:flex; gap:.75rem; margin-top:1.5rem; align-items:center; }
     .entry-error { color:var(--color-danger,#dc2626); font-size:.875rem; margin:.5rem 0; }
   `]

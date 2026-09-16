@@ -65,11 +65,11 @@ describe('AuditLogComponent', () => {
     expect(msg?.textContent).toContain('Failed');
   });
 
-  it('shows "No activity found" when result is empty', () => {
+  it('shows "No activity yet" when result is empty', () => {
     svc.getMyLog.and.returnValue(of(makePage([])));
     fixture.detectChanges();
-    const msg = fixture.nativeElement.querySelector('.state-message');
-    expect(msg?.textContent).toContain('No activity found');
+    const msg = fixture.nativeElement.querySelector('.empty-state');
+    expect(msg?.textContent).toContain('No activity yet');
   });
 
   it('calls service again with filter when action changes', () => {

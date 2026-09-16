@@ -12,13 +12,13 @@ import { AuthService } from '../auth.service';
     <div class="auth-wrap">
       <div class="auth-card">
         <div class="auth-brand">
-          <svg class="auth-brand__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 20.5C12 20.5 3.5 14.5 3.5 9a8.5 8.5 0 0117 0c0 5.5-8.5 11.5-8.5 11.5z"
-                  stroke="currentColor" stroke-width="1.5" fill="none"/>
-            <path d="M9 12h1.5l1-2.5 1 5 1-6 1 3.5H15" stroke="currentColor" stroke-width="1.5"
+          <svg class="auth-brand__icon" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <rect width="40" height="40" rx="10" fill="#0d9488"/>
+            <path d="M20 10v20M10 20h20" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+            <path d="M13 20h3l2-6 4 12 2-6h3" stroke="#ccfbf1" stroke-width="2.2"
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="auth-brand__name">Health Vault</span>
+          <span class="auth-brand__name">Health<b>Vault</b></span>
         </div>
         <h2 class="auth-title">Create Account</h2>
         <p class="auth-tagline">Your health data, always with you.</p>
@@ -56,41 +56,42 @@ import { AuthService } from '../auth.service';
   styles: [`
     .auth-wrap {
       display:flex; align-items:center; justify-content:center;
-      min-height:100vh;
-      background: radial-gradient(ellipse at 60% 0%, #ccfbf1 0%, #f8fafc 60%);
+      min-height:100vh; font-family: var(--font-sans);
+      background: radial-gradient(ellipse at 60% 0%, var(--color-primary-light) 0%, var(--color-surface) 60%);
       padding: 1.5rem;
     }
     .auth-card {
-      background:#fff; border-radius:16px;
-      box-shadow:0 4px 32px rgba(0,0,0,.09), 0 1px 4px rgba(0,0,0,.05);
+      background: var(--color-card); border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
       padding:2.5rem; width:100%; max-width:400px;
     }
-    .auth-brand { display:flex; align-items:center; gap:.5rem; margin-bottom:1.75rem; }
-    .auth-brand__icon { width:28px; height:28px; color:#0f766e; }
-    .auth-brand__name { font-size:1rem; font-weight:700; color:#0f766e; letter-spacing:-.3px; }
-    .auth-title { margin:0 0 .25rem; font-size:1.5rem; font-weight:700; color:#1e293b; }
-    .auth-tagline { margin:0 0 1.75rem; font-size:.875rem; color:#64748b; }
+    .auth-brand { display:flex; align-items:center; gap:.6rem; margin-bottom:1.75rem; }
+    .auth-brand__icon { width:32px; height:32px; flex-shrink:0; }
+    .auth-brand__name { font-size:1.0625rem; font-weight:800; color: var(--color-ink); letter-spacing:-.02em; }
+    .auth-brand__name b { color: var(--color-primary); font-weight:800; }
+    .auth-title { margin:0 0 .25rem; font-size:1.5rem; font-weight:700; color: var(--color-ink); }
+    .auth-tagline { margin:0 0 1.75rem; font-size:.875rem; color: var(--color-text-secondary); }
     .field { display:flex; flex-direction:column; margin-bottom:1.25rem; gap:.35rem; }
-    label { font-size:.8125rem; font-weight:600; color:#64748b; }
-    .sub { font-weight:400; color:#94a3b8; }
+    label { font-size:.8125rem; font-weight:600; color: var(--color-text-secondary); }
+    .sub { font-weight:400; color: var(--color-text-muted); }
     input {
-      padding:.6rem .8rem; border:1.5px solid #e2e8f0; border-radius:8px;
+      padding:.6rem .8rem; border:1.5px solid var(--color-border); border-radius: var(--radius-md);
       font-size:.9375rem; outline:none; font-family:inherit;
-      transition:border-color .15s, box-shadow .15s; color:#1e293b;
+      transition:border-color .15s, box-shadow .15s; color: var(--color-text);
     }
-    input:focus { border-color:#0f766e; box-shadow:0 0 0 3px rgba(15,118,110,.1); }
-    input.invalid { border-color:#dc2626; }
-    .hint { font-size:.8rem; color:#dc2626; }
-    .auth-error { color:#dc2626; font-size:.875rem; margin:.25rem 0 .75rem; }
+    input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-glow); }
+    input.invalid { border-color: var(--color-danger); }
+    .hint { font-size:.8rem; color: var(--color-danger); }
+    .auth-error { color: var(--color-danger); font-size:.875rem; margin:.25rem 0 .75rem; }
     .auth-submit {
-      width:100%; padding:.75rem; background:#0f766e; color:#fff;
-      border:none; border-radius:8px; font-size:.9375rem; font-weight:600;
+      width:100%; padding:.75rem; background: var(--color-primary); color:var(--color-text-on-primary);
+      border:none; border-radius: var(--radius-md); font-size:.9375rem; font-weight:600;
       cursor:pointer; margin-top:.25rem; transition:background .15s; font-family:inherit;
     }
-    .auth-submit:hover:not(:disabled) { background:#0d5f59; }
+    .auth-submit:hover:not(:disabled) { background: var(--color-primary-dark); }
     .auth-submit:disabled { opacity:.55; cursor:not-allowed; }
-    .auth-switch { text-align:center; margin-top:1.25rem; font-size:.875rem; color:#64748b; }
-    .auth-switch a { color:#0f766e; font-weight:600; text-decoration:none; }
+    .auth-switch { text-align:center; margin-top:1.25rem; font-size:.875rem; color: var(--color-text-secondary); }
+    .auth-switch a { color: var(--color-primary); font-weight:600; text-decoration:none; }
     .auth-switch a:hover { text-decoration:underline; }
   `]
 })

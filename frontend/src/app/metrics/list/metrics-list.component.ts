@@ -70,9 +70,16 @@ import { MetricResponse, MetricType, PageResponse, formatValue } from '../models
         </table>
       </div>
 
-      <div *ngIf="!loading && page?.content?.length === 0" class="state-msg empty">
-        No metrics logged yet.
-        <a routerLink="/metrics/new" class="btn btn-primary btn-sm" style="margin-top:.75rem;">Log your first metric</a>
+      <div *ngIf="!loading && page?.content?.length === 0" class="card empty-state">
+        <span class="empty-state__icon" aria-hidden="true">♡</span>
+        <h2 class="empty-state__title">No metrics logged yet</h2>
+        <p class="empty-state__text">
+          Track blood pressure, glucose, weight, workouts, and heart rate over time —
+          log your first reading to start seeing trends here.
+        </p>
+        <div class="empty-state__actions">
+          <a routerLink="/metrics/new" class="btn btn-primary">+ Log your first metric</a>
+        </div>
       </div>
 
       <!-- Pagination -->

@@ -54,7 +54,14 @@ interface DayGroup {
 
       <!-- Day groups -->
       <ng-container *ngIf="!loading && !error">
-        <div *ngIf="groups.length === 0" class="state-message">No activity found.</div>
+        <div *ngIf="groups.length === 0" class="empty-state">
+          <span class="empty-state__icon" aria-hidden="true">◷</span>
+          <h2 class="empty-state__title">No activity yet</h2>
+          <p class="empty-state__text">
+            Logins, document uploads, and metric changes will show up here as a
+            security-focused timeline of everything that's happened on your account.
+          </p>
+        </div>
 
         <div *ngFor="let group of groups" class="day-group">
           <h2 class="day-label">{{ group.label }}</h2>
@@ -103,12 +110,12 @@ interface DayGroup {
     .filters select, .filters input {
       padding: .4rem .65rem; border: 1.5px solid var(--color-border,#e2e8f0);
       border-radius: var(--radius-md,8px); font-size: 0.875rem; font-family:inherit;
-      color:var(--color-text,#1e293b); background:#fff; outline:none;
+      color:var(--color-text,#1e293b); background:var(--color-card,#fff); outline:none;
     }
     .filters select:focus, .filters input:focus { border-color:var(--color-primary,#0f766e); }
     .btn-secondary {
       padding: .4rem .9rem; border: 1.5px solid var(--color-border,#e2e8f0);
-      border-radius: var(--radius-md,8px); background: #fff; cursor: pointer;
+      border-radius: var(--radius-md,8px); background: var(--color-card,#fff); cursor: pointer;
       font-size: 0.875rem; font-family:inherit; color:var(--color-text-secondary,#64748b);
       transition:background .1s;
     }

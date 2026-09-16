@@ -13,7 +13,10 @@ import { ConnectivityService } from '../../core/connectivity.service';
   template: `
     <div class="page-container" style="max-width:560px;">
       <div class="page-header">
-        <h1 class="page-title">Upload Document</h1>
+        <div>
+          <h1 class="page-title">Upload Document</h1>
+          <p class="page-subtitle">Encrypted, OCR'd automatically, and cross-checked for any health metrics it contains.</p>
+        </div>
       </div>
 
       <!-- Offline guard -->
@@ -35,22 +38,35 @@ import { ConnectivityService } from '../../core/connectivity.service';
           </div>
 
           <div class="field">
-            <label for="fileInput">
-              File
-              <span style="font-weight:400;color:#94a3b8;font-size:.8rem;"> — PDF, JPEG, PNG · max 25 MB</span>
-            </label>
-            <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png"
-                   (change)="onFileChange($event)" style="padding:.5rem;" />
-            <span *ngIf="selectedFile" class="file-selected">
-              {{ selectedFile.name }} · {{ formatSize(selectedFile.size) }}
-            </span>
+            <label>File</label>
+            <div class="dropzone"
+                 [class.dropzone--active]="isDragging"
+                 [class.dropzone--filled]="selectedFile"
+                 (click)="fileInput.click()"
+                 (dragover)="onDragOver($event)"
+                 (dragleave)="onDragLeave($event)"
+                 (drop)="onDrop($event)">
+              <span class="dropzone__icon" aria-hidden="true">{{ selectedFile ? '📄' : '⬆' }}</span>
+              <ng-container *ngIf="!selectedFile">
+                <p class="dropzone__text">
+                  Drag and drop your file here, or <b>browse</b>
+                </p>
+                <p class="dropzone__hint">PDF, JPEG, or PNG · max 25 MB</p>
+              </ng-container>
+              <ng-container *ngIf="selectedFile">
+                <p class="dropzone__text">{{ selectedFile.name }}</p>
+                <p class="dropzone__hint">{{ formatSize(selectedFile.size) }} · click or drop to replace</p>
+              </ng-container>
+            </div>
+            <input #fileInput type="file" accept=".pdf,.jpg,.jpeg,.png" hidden
+                   (change)="onFileChange($event)" />
           </div>
 
           <div *ngIf="uploading" style="margin-bottom:1rem;">
             <div class="progress-bar">
               <div class="progress-fill" [style.width.%]="progress"></div>
             </div>
-            <p style="text-align:center;font-size:.8125rem;color:#64748b;margin:.25rem 0 0;">{{ progress }}% uploaded</p>
+            <p style="text-align:center;font-size:.8125rem;color:var(--color-text-secondary);margin:.25rem 0 0;">{{ progress }}% uploaded</p>
           </div>
 
           <div *ngIf="error" class="upload-error" role="alert">{{ error }}</div>
@@ -70,14 +86,33 @@ import { ConnectivityService } from '../../core/connectivity.service';
   styles: [`
     .offline-notice { text-align:center; padding:2.5rem; }
     .offline-icon { font-size:2rem; display:block; margin-bottom:.75rem; }
-    .offline-notice p { margin:0 0 1.25rem; color:var(--color-text-secondary,#64748b); }
-    .file-selected {
-      font-size:.8125rem; color:var(--color-text-secondary,#64748b);
-      margin-top:.25rem;
+    .offline-notice p { margin:0 0 1.25rem; color:var(--color-text-secondary); }
+
+    .dropzone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: .4rem; text-align: center; cursor: pointer;
+      padding: 2rem 1rem; border-radius: var(--radius-lg);
+      border: 2px dashed var(--color-border-strong);
+      background: var(--color-surface-sub);
+      transition: background .15s, border-color .15s;
     }
+    .dropzone:hover, .dropzone--active {
+      background: var(--color-primary-muted); border-color: var(--color-primary);
+    }
+    .dropzone--filled { border-style: solid; background: var(--color-card); }
+    .dropzone__icon {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--color-primary-light); color: var(--color-primary-dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .dropzone__text { margin: 0; font-weight: 700; color: var(--color-ink); font-size: .9375rem; }
+    .dropzone__text b { color: var(--color-primary); text-decoration: underline; }
+    .dropzone__hint { margin: 0; font-size: .8125rem; color: var(--color-text-secondary); }
+
     .form-actions { display:flex; gap:.75rem; margin-top:1.5rem; align-items:center; }
-    .upload-error { color:var(--color-danger,#dc2626); font-size:.875rem; margin:.5rem 0; }
-    .upload-success { color:var(--color-success,#059669); font-size:.875rem; margin:.5rem 0; font-weight:600; }
+    .upload-error { color: var(--color-danger); font-size:.875rem; margin:.5rem 0; }
+    .upload-success { color: var(--color-success); font-size:.875rem; margin:.5rem 0; font-weight:600; }
   `]
 })
 export class DocumentUploadComponent {
@@ -89,6 +124,7 @@ export class DocumentUploadComponent {
   form = this.fb.group({ category: ['', Validators.required] });
 
   selectedFile: File | null = null;
+  isDragging = false;
   uploading = false;
   progress  = 0;
   error:   string | null = null;
@@ -105,6 +141,26 @@ export class DocumentUploadComponent {
     const input = event.target as HTMLInputElement;
     this.selectedFile = input.files?.[0] ?? null;
     this.error = null;
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = false;
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      this.selectedFile = file;
+      this.error = null;
+    }
   }
 
   submit(): void {

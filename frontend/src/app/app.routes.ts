@@ -31,6 +31,21 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'medications',
+    loadComponent: () => import('./medications/list/medications-list.component').then((m) => m.MedicationsListComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'medications/new',
+    loadComponent: () => import('./medications/entry-form/medication-entry-form.component').then((m) => m.MedicationEntryFormComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'medications/:id/edit',
+    loadComponent: () => import('./medications/entry-form/medication-entry-form.component').then((m) => m.MedicationEntryFormComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [authGuard]
