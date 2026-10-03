@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
 import { AuditLogService } from './audit-log.service';
 import {
   AuditLogEntry,
@@ -20,7 +19,7 @@ interface DayGroup {
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe],
   template: `
     <div class="audit-log-page">
       <header class="page-header">

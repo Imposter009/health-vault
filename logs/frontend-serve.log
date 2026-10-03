@@ -1,0 +1,101 @@
+- Generating browser application bundles (phase: setup)...
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                                      | Names                               |  Raw Size
+vendor.js                                                | vendor                              |   2.33 MB |
+polyfills.js                                             | polyfills                           | 252.54 kB |
+styles.css, styles.js                                    | styles                              | 150.28 kB |
+main.js                                                  | main                                |  16.76 kB |
+runtime.js                                               | runtime                             |  12.60 kB |
+
+| Initial Total                       |   2.75 MB
+
+Lazy Chunk Files                                         | Names                               |  Raw Size
+default-node_modules_angular_forms_fesm2022_forms_mjs.js | auth-login-login-component          | 295.68 kB |
+src_app_auth_register_register_component_ts.js           | auth-register-register-component    |  16.57 kB |
+src_app_profile_profile_component_ts.js                  | profile-profile-component           |  15.86 kB |
+src_app_auth_login_login_component_ts.js                 | auth-login-login-component          |  14.61 kB |
+src_app_health-check_health-check_component_ts.js        | health-check-health-check-component |  13.93 kB |
+
+Build at: 2026-08-15T08:30:30.101Z - Hash: 8e8341353e4b4867 - Time: 11822ms
+
+** Angular Live Development Server is listening on localhost:4299, open your browser on http://localhost:4299/ **
+
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+10 unchanged chunks
+
+Build at: 2026-08-15T08:55:53.176Z - Hash: 8e8341353e4b4867 - Time: 977ms
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                                          | Names                                          |  Raw Size
+main.js                                                      | main                                           |  18.16 kB |
+runtime.js                                                   | runtime                                        |  12.60 kB |
+
+Lazy Chunk Files                                             | Names                                          |  Raw Size
+src_app_dashboard_dashboard_component_ts.js                  | dashboard-dashboard-component                  | 519.56 kB |
+src_app_metrics_list_metrics-list_component_ts.js            | metrics-list-metrics-list-component            |  24.41 kB |
+src_app_metrics_entry-form_metric-entry-form_component_ts.js | metrics-entry-form-metric-entry-form-component |  23.40 kB |
+common.js                                                    | common                                         |   2.48 kB |
+
+8 unchanged chunks
+
+Build at: 2026-08-15T08:58:35.796Z - Hash: 7d809a12bb14d13a - Time: 11708ms
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                     | Names                     | Raw Size
+runtime.js                              | runtime                   | 12.60 kB |
+
+Lazy Chunk Files                        | Names                     | Raw Size
+src_app_profile_profile_component_ts.js | profile-profile-component | 15.86 kB |
+
+12 unchanged chunks
+
+Build at: 2026-08-15T08:58:36.592Z - Hash: b5def32dffb5f35e - Time: 707ms
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                     | Names                     | Raw Size
+runtime.js                              | runtime                   | 12.60 kB |
+
+Lazy Chunk Files                        | Names                     | Raw Size
+src_app_profile_profile_component_ts.js | profile-profile-component | 15.92 kB |
+
+12 unchanged chunks
+
+Build at: 2026-08-15T08:58:38.883Z - Hash: cdba1b69caabfed3 - Time: 817ms
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                     | Names                     | Raw Size
+runtime.js                              | runtime                   | 12.60 kB |
+
+Lazy Chunk Files                        | Names                     | Raw Size
+src_app_profile_profile_component_ts.js | profile-profile-component | 16.54 kB |
+
+12 unchanged chunks
+
+Build at: 2026-08-15T08:58:46.452Z - Hash: 6056819f201655fd - Time: 1328ms
+
+√ Compiled successfully.
+√ Browser application bundle generation complete.
+
+Initial Chunk Files                     | Names                     | Raw Size
+runtime.js                              | runtime                   | 12.60 kB |
+
+Lazy Chunk Files                        | Names                     | Raw Size
+src_app_profile_profile_component_ts.js | profile-profile-component | 17.53 kB |
+
+12 unchanged chunks
+
+Build at: 2026-08-15T08:58:57.702Z - Hash: 2ea3d25483aedb11 - Time: 854ms
+
+√ Compiled successfully.

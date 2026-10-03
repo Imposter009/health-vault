@@ -2,6 +2,7 @@ package com.healthvault.auth.service;
 
 import com.healthvault.auth.config.JwtProperties;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -16,6 +17,7 @@ import java.util.HexFormat;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TokenService {
@@ -82,8 +84,8 @@ public class TokenService {
         try {
             redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttlSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
-            // Fail open: refresh token is already revoked in DB.
-            // Log but don't break the logout response.
+            // Fail open: refresh token is already revoked in DB, so logout is still effective.
+            log.warn("Failed to blacklist JWT jti={} in Redis; refresh token is still revoked in DB", jti, e);
         }
     }
 
@@ -97,6 +99,7 @@ public class TokenService {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + jti));
         } catch (Exception e) {
+            log.warn("Failed to check JWT blacklist for jti={} in Redis; failing open (treating as not blacklisted)", jti, e);
             return false;  // fail open
         }
     }

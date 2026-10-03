@@ -86,25 +86,6 @@ const CATEGORY_ICONS: Record<DocumentCategory, string> = {
     </div>
   `,
   styles: [`
-    .cat-pills {
-      display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem;
-    }
-    .cat-pill {
-      display: inline-flex; align-items: center; gap: .5rem;
-      padding: .45rem 1rem; border-radius: var(--radius-pill);
-      background: var(--color-surface-sub); border: none;
-      color: var(--color-text-secondary); font-size: .8125rem; font-weight: 600;
-      cursor: pointer; transition: background .12s, color .12s; font-family: inherit;
-      white-space: nowrap;
-    }
-    .cat-pill:hover { background: var(--color-border); }
-    .cat-pill.active { background: var(--color-primary); color: var(--color-text-on-primary); }
-    .cat-pill__count {
-      background: rgba(0,0,0,.08); border-radius: var(--radius-pill);
-      padding: .05rem .45rem; font-size: .6875rem; font-weight: 700;
-    }
-    .cat-pill.active .cat-pill__count { background: rgba(255,255,255,.25); }
-
     .doc-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 1rem; margin-bottom: 1.5rem;

@@ -1,0 +1,199 @@
+# docker-compose.prod.yml — production overlay
+#
+# Extends the base compose file (docker-compose.yml) with the three application
+# services (core-api, gateway, frontend) plus a Caddy reverse proxy that terminates
+# TLS for your domain automatically (Let's Encrypt).
+#
+# Run from repo root:
+#
+#   docker compose -f infra/docker/docker-compose.yml \
+#                  -f infra/docker/docker-compose.prod.yml \
+#                  --env-file .env.prod \
+#                  up -d --build
+#
+# Differences from docker-compose.ci.yml (which exists purely for the CI smoke test):
+#   - restart: unless-stopped on every service (survives host reboot / crash)
+#   - SPRING_PROFILES_ACTIVE=prod (fails fast on any missing required secret —
+#     no insecure defaults, unlike the "docker" profile used in CI)
+#   - Every secret is REQUIRED (${VAR:?error}) — compose refuses to start rather
+#     than silently falling back to a CI/dev placeholder
+#   - Infra ports (Postgres/Redis/Kafka/MinIO/Prometheus/Grafana/Zipkin) are bound
+#     to 127.0.0.1 only — not reachable from the internet, only via SSH tunnel
+#   - A Caddy container is the only thing exposed on 80/443, and it gets you
+#     automatic HTTPS for your domain with zero manual certificate handling
+
+version: "3.9"
+
+services:
+
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart: unless-stopped
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
+
+  minio:
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    restart: unless-stopped
+
+  kafka:
+    ports:
+      - "127.0.0.1:9092:9092"
+    restart: unless-stopped
+
+  prometheus:
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  zipkin:
+    ports:
+      - "127.0.0.1:9411:9411"
+    restart: unless-stopped
+
+  redis-exporter:
+    restart: unless-stopped
+
+  # ── Application services ───────────────────────────────────────────────────
+
+  core-api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: healthvault/core-api:${IMAGE_TAG:-latest}
+    container_name: healthvault-core-api
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-healthvault}
+      DB_USERNAME: ${POSTGRES_USER:-healthvault}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env.prod}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env.prod}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-health-vault-documents}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.prod}
+      JWT_ACCESS_TOKEN_TTL_MINUTES: ${JWT_ACCESS_TOKEN_TTL_MINUTES:-15}
+      JWT_REFRESH_TOKEN_TTL_DAYS: ${JWT_REFRESH_TOKEN_TTL_DAYS:-30}
+      DOCUMENT_ENCRYPTION_KEY: ${DOCUMENT_ENCRYPTION_KEY:?Set DOCUMENT_ENCRYPTION_KEY in .env.prod}
+      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      AI_FEATURES_ENABLED: ${AI_FEATURES_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-not-set}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - healthvault-net
+
+  gateway:
+    build:
+      context: ../../gateway
+      dockerfile: Dockerfile
+    image: healthvault/gateway:${IMAGE_TAG:-latest}
+    container_name: healthvault-gateway
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CORE_API_URL: http://core-api:8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.prod}
+      CORS_ALLOWED_ORIGIN_1: https://${DOMAIN:?Set DOMAIN in .env.prod}
+      CORS_ALLOWED_ORIGIN_2: https://www.${DOMAIN:?Set DOMAIN in .env.prod}
+      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      GATEWAY_RATE_LOGIN_REPLENISH: ${GATEWAY_RATE_LOGIN_REPLENISH:-1}
+      GATEWAY_RATE_LOGIN_BURST: ${GATEWAY_RATE_LOGIN_BURST:-5}
+      GATEWAY_RATE_REGISTER_REPLENISH: ${GATEWAY_RATE_REGISTER_REPLENISH:-2}
+      GATEWAY_RATE_REGISTER_BURST: ${GATEWAY_RATE_REGISTER_BURST:-5}
+      GATEWAY_RATE_UPLOAD_REPLENISH: ${GATEWAY_RATE_UPLOAD_REPLENISH:-5}
+      GATEWAY_RATE_UPLOAD_BURST: ${GATEWAY_RATE_UPLOAD_BURST:-10}
+      GATEWAY_RATE_AI_CHAT_REPLENISH: ${GATEWAY_RATE_AI_CHAT_REPLENISH:-2}
+      GATEWAY_RATE_AI_CHAT_BURST: ${GATEWAY_RATE_AI_CHAT_BURST:-5}
+      GATEWAY_RATE_AI_TREND_REPLENISH: ${GATEWAY_RATE_AI_TREND_REPLENISH:-5}
+      GATEWAY_RATE_AI_TREND_BURST: ${GATEWAY_RATE_AI_TREND_BURST:-10}
+    depends_on:
+      core-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+    networks:
+      - healthvault-net
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    image: healthvault/frontend:${IMAGE_TAG:-latest}
+    container_name: healthvault-frontend
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ | grep -q '<app-root'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - healthvault-net
+
+  # ── Reverse proxy / TLS ────────────────────────────────────────────────────
+  # Caddy gets you automatic Let's Encrypt HTTPS for $DOMAIN with no manual
+  # certificate handling. It is the ONLY container exposed on 80/443.
+  caddy:
+    image: caddy:2-alpine
+    container_name: healthvault-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env.prod}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks:
+      - healthvault-net
+
+volumes:
+  caddy_data:
+  caddy_config:

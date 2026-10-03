@@ -137,15 +137,6 @@ import { ConnectivityService } from '../../core/connectivity.service';
       </div>
     </div>
   `,
-  styles: [`
-    .offline-notice { text-align:center; padding:2.5rem; }
-    .offline-icon { font-size:2rem; display:block; margin-bottom:.75rem; }
-    .offline-notice p { margin:0 0 1.25rem; color:var(--color-text-secondary,#64748b); }
-    .field-row { display:grid; grid-template-columns: 1fr 1fr; gap: 0 .75rem; }
-    @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
-    .form-actions { display:flex; gap:.75rem; margin-top:1.5rem; align-items:center; }
-    .entry-error { color:var(--color-danger,#dc2626); font-size:.875rem; margin:.5rem 0; }
-  `]
 })
 export class MetricEntryFormComponent implements OnInit {
   private fb     = inject(FormBuilder);
@@ -210,8 +201,6 @@ export class MetricEntryFormComponent implements OnInit {
       },
     });
   }
-
-  cancel(): void { this.router.navigate(['/metrics']); }
 
   private nowLocal(): string {
     const now = new Date();

@@ -40,7 +40,7 @@ public class DashboardService {
                 ps.setObject(3, from);
                 ps.setObject(4, to);
             },
-            (rs, rowNum) -> mapRow(rs, type)
+            (rs, rowNum) -> mapRow(rs)
         );
 
         return new DashboardResponse(
@@ -133,7 +133,7 @@ public class DashboardService {
             """.formatted(trunc, trunc);
     }
 
-    private DashboardBucketResponse mapRow(ResultSet rs, MetricType type) throws SQLException {
+    private DashboardBucketResponse mapRow(ResultSet rs) throws SQLException {
         Timestamp ts = rs.getTimestamp("bucket_start");
         String bucketStart = ts.toLocalDateTime().toLocalDate().toString();
         return new DashboardBucketResponse(

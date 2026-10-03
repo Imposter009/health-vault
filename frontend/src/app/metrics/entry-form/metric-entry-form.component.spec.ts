@@ -109,9 +109,4 @@ describe('MetricEntryFormComponent', () => {
     comp.submit();
     expect(comp.errorMsg).toBe('Bad value');
   });
-
-  it('cancel navigates to /metrics', () => {
-    comp.cancel();
-    expect(router.navigate).toHaveBeenCalledWith(['/metrics']);
-  });
 });

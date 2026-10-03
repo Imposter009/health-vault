@@ -1,11 +1,13 @@
 package com.healthvault.auth.filter;
 
 import com.healthvault.auth.config.RateLimitProperties;
+import com.healthvault.common.ClientIpResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * Key format: rate_limit:{endpoint-slug}:{client-ip}:{window-bucket}
  * Fail-open: if Redis is unavailable, the request is allowed through with a warning.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -48,7 +51,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String clientIp = resolveClientIp(request);
+        String clientIp = ClientIpResolver.resolve(request);
         String slug = path.replace("/api/auth/", "").replace("/", "-");
         long windowBucket = System.currentTimeMillis() / (rateLimitProperties.windowSeconds() * 1000L);
         String redisKey = "rate_limit:" + slug + ":" + clientIp + ":" + windowBucket;
@@ -63,18 +66,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception e) {
-            // Fail open — log but don't block requests if Redis is unavailable
+            // Fail open — don't block requests if Redis is unavailable
+            log.warn("Rate limit check failed for key={}; failing open (request allowed through)", redisKey, e);
         }
 
         chain.doFilter(request, response);
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private void sendTooManyRequests(HttpServletResponse response) throws IOException {

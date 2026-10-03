@@ -48,7 +48,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin_secret}
       JWT_SECRET: ${JWT_SECRET:-ci-test-secret-must-be-at-least-32-chars-long}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ci-aes-256-key-must-be-32-bytes!}
+      DOCUMENT_ENCRYPTION_KEY: ${DOCUMENT_ENCRYPTION_KEY:-Y2ktYWVzLTI1Ni1rZXktbXVzdC1iZS0zMi1ieXRlcyE=}
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "0.0"
       SPRING_ZIPKIN_ENABLED: "false"
     ports:
@@ -63,7 +63,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health | grep -q '\"status\":\"UP\"'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health | grep -q '\"status\":\"UP\"'"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -79,7 +79,7 @@ services:
     container_name: healthvault-gateway
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      BACKEND_URI: http://core-api:8080
+      CORE_API_URL: http://core-api:8080
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-ci-test-secret-must-be-at-least-32-chars-long}

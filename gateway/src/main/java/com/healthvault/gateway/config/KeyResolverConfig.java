@@ -4,6 +4,7 @@ import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -21,15 +22,7 @@ public class KeyResolverConfig {
     @Bean
     @Primary
     public KeyResolver ipKeyResolver() {
-        return exchange -> {
-            String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-            String ip = (forwarded != null && !forwarded.isBlank())
-                    ? forwarded.split(",")[0].trim()
-                    : (exchange.getRequest().getRemoteAddress() != null
-                            ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                            : "unknown");
-            return Mono.just(ip);
-        };
+        return exchange -> Mono.just(resolveIp(exchange));
     }
 
     /**
@@ -47,14 +40,19 @@ public class KeyResolverConfig {
                     return Mono.just("user:" + sub);
                 }
             }
-            String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-            String ip = (forwarded != null && !forwarded.isBlank())
-                    ? forwarded.split(",")[0].trim()
-                    : (exchange.getRequest().getRemoteAddress() != null
-                            ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                            : "unknown");
-            return Mono.just("ip:" + ip);
+            return Mono.just("ip:" + resolveIp(exchange));
         };
+    }
+
+    /** Client IP, preferring the first X-Forwarded-For entry over the raw socket address. */
+    private String resolveIp(ServerWebExchange exchange) {
+        String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return exchange.getRequest().getRemoteAddress() != null
+                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                : "unknown";
     }
 
     /**

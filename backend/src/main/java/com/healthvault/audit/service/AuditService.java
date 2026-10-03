@@ -6,6 +6,7 @@ import com.healthvault.audit.dto.AuditLogResponse;
 import com.healthvault.audit.entity.AuditLog;
 import com.healthvault.audit.repository.AuditLogRepository;
 import com.healthvault.audit.repository.AuditLogSpecifications;
+import com.healthvault.common.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +54,7 @@ public class AuditService {
                     (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
                 HttpServletRequest req = attrs.getRequest();
-                ip = extractClientIp(req);
+                ip = ClientIpResolver.resolve(req);
                 userAgent = req.getHeader("User-Agent");
                 if (userAgent != null && userAgent.length() > 512) {
                     userAgent = userAgent.substring(0, 512);
@@ -109,14 +110,5 @@ public class AuditService {
                 log.getMetadata(),
                 log.getCreatedAt()
         );
-    }
-
-    private String extractClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            // X-Forwarded-For may be a comma-separated list; first entry is the original client
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 }

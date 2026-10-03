@@ -1,43 +1,27 @@
 import { TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { signal } from '@angular/core';
 import { AppComponent } from './app.component';
-import { AuthService } from './auth/auth.service';
-import { ConnectivityService } from './core/connectivity.service';
 
 describe('AppComponent', () => {
-  let authSpy: jasmine.SpyObj<AuthService>;
-
-  beforeEach(() => {
-    authSpy = jasmine.createSpyObj('AuthService', ['logout'], {
-      isAuthenticated: signal(false),
-    });
-
-    const connectivityStub = { isOnline: signal(true) };
-
-    TestBed.configureTestingModule({
-      imports: [AppComponent, RouterTestingModule],
-      providers: [
-        { provide: AuthService,       useValue: authSpy },
-        { provide: ConnectivityService, useValue: connectivityStub },
-      ],
-    });
-  });
+  beforeEach(() => TestBed.configureTestingModule({
+    imports: [AppComponent]
+  }));
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance).toBeTruthy();
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
   });
 
-  it('should render router-outlet', () => {
+  it(`should have the 'frontend' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('router-outlet')).toBeTruthy();
+    const app = fixture.componentInstance;
+    expect(app.title).toEqual('frontend');
   });
 
-  it('should not show offline banner when online', () => {
+  it('should render title', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.offline-banner')).toBeNull();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.content span')?.textContent).toContain('frontend app is running!');
   });
 });

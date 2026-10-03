@@ -69,7 +69,7 @@ import { ConnectivityService } from '../../core/connectivity.service';
             <p style="text-align:center;font-size:.8125rem;color:var(--color-text-secondary);margin:.25rem 0 0;">{{ progress }}% uploaded</p>
           </div>
 
-          <div *ngIf="error" class="upload-error" role="alert">{{ error }}</div>
+          <div *ngIf="error" class="entry-error" role="alert">{{ error }}</div>
           <div *ngIf="success" class="upload-success" role="status">Upload complete! Redirecting…</div>
 
           <div class="form-actions">
@@ -84,10 +84,6 @@ import { ConnectivityService } from '../../core/connectivity.service';
     </div>
   `,
   styles: [`
-    .offline-notice { text-align:center; padding:2.5rem; }
-    .offline-icon { font-size:2rem; display:block; margin-bottom:.75rem; }
-    .offline-notice p { margin:0 0 1.25rem; color:var(--color-text-secondary); }
-
     .dropzone {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: .4rem; text-align: center; cursor: pointer;
@@ -110,8 +106,6 @@ import { ConnectivityService } from '../../core/connectivity.service';
     .dropzone__text b { color: var(--color-primary); text-decoration: underline; }
     .dropzone__hint { margin: 0; font-size: .8125rem; color: var(--color-text-secondary); }
 
-    .form-actions { display:flex; gap:.75rem; margin-top:1.5rem; align-items:center; }
-    .upload-error { color: var(--color-danger); font-size:.875rem; margin:.5rem 0; }
     .upload-success { color: var(--color-success); font-size:.875rem; margin:.5rem 0; font-weight:600; }
   `]
 })

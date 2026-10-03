@@ -16,19 +16,11 @@ spring:
   jpa:
     show-sql: false
 
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}   # matches docker-compose service name
-      port: ${REDIS_PORT:6379}
-
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
-  zipkin:
-    tracing:
-      endpoint: http://zipkin:9411/api/v2/spans
+        include: health,info,metrics
 
 logging:
   level:

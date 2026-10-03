@@ -40,7 +40,7 @@ Reports are written to `target/dependency-check-report.html` and `.json`.
 **Key Spring Boot 3.3.5 dependency notes:**
 - Spring Boot 3.3.5 ships a curated BOM with regular CVE patches — baseline is current as of this build
 - Spring Security 6.3.x included via Boot BOM — recent, no known critical CVEs
-- Tomcat pinned to 10.1.30 (`<tomcat.version>`) — see CLAUDE.md note; update when Artifactory caches 10.1.31+
+- Tomcat pinned to 10.1.30 (`<tomcat.version>`) — update when Artifactory caches 10.1.31+
 - Nimbus JOSE+JWT and Bouncy Castle versions managed by Boot BOM
 
 ---
@@ -62,7 +62,7 @@ Reports are written to `target/dependency-check-report.html` and `.json`.
 
 ### Analysis
 
-**All 58 vulnerabilities are in dev/build dependencies or in the Angular 16.x framework**, which is **locked at 16.x** per the project's explicit constraint (CLAUDE.md: "Angular 16.x"). Upgrading to fix these requires `npm audit fix --force`, which would jump to Angular 22.x — a major breaking change not justified by the risk.
+**All 58 vulnerabilities are in dev/build dependencies or in the Angular 16.x framework**, which is **locked at 16.x** per the project's tech-stack constraint. Upgrading to fix these requires `npm audit fix --force`, which would jump to Angular 22.x — a major breaking change not justified by the risk.
 
 | Finding | Affected Package | Risk in Health Vault | Decision |
 |---------|-----------------|----------------------|----------|
